@@ -204,7 +204,7 @@ sequenceDiagram
 ORM 객체 반환 방식으로 조회·저장 함수의 사용 방법을 맞췄다.
 
 - **DB 환경과 연결 기반** — PostgreSQL 제공자로 Neon을 선정하고 development·production
-  브랜치를 분리해 pooled 연결 정보를 임익화에게 비공개로 전달했다. SQLAlchemy·psycopg
+  브랜치를 분리했다. SQLAlchemy·psycopg
   의존성을 추가하고, `DATABASE_URL` 환경변수를 사용하는 `engine`, `SessionLocal`,
   ORM 공통 기반인 `Base`를 구성했다.
   ([#70](https://github.com/Teamb7-1/ai-chatbot-service/issues/70),
@@ -248,7 +248,7 @@ ORM 객체 반환 방식으로 조회·저장 함수의 사용 방법을 맞췄�
 ### 임익화 — 앱 골격 · 화면 · 인프라 (`zxcv718`)
 
 - 담당 파일: `app/main.py` `config.py` `schemas.py` `logging_config.py` · `routers/pages.py` `templates/base·chat·logs` `static/` · `.github/` `vercel.json` `scripts/vercel-env-push.sh`
-- 작업 요약 (커밋 74 · 이슈 번호는 PR 과 1:1):
+- 작업 요약 (이슈 번호는 PR 과 1:1):
   - **앱 골격** — FastAPI 진입점, 요청/응답/오류 스키마와 `AppError`, 전역 예외 핸들러로 오류 응답 형식 통일 (#1 #24 #46), `request_id` 미들웨어와 로깅 설정 (#37)
   - **화면** — 디자인 토큰·템플릿·`chat.js` (#1), 화면 라우터 `pages.py` (#51 #75), 인증 연결과 로그아웃 (#68), `/logs` 데이터 연결과 KST 표시 (#91 #99), `/api/chat` 라우터 등록 (#94)
   - **인프라·CI** — Vercel 단일 함수 배포와 스테이징/프로덕션 분리, `autopr → ci → automerge → close-issue → deploy` 자동화 (#1 #26 #31 #61), 환경변수 등록 스크립트 (#57 #63), CI 더미 `DATABASE_URL` (#78), Neon 두 브랜치 테이블 생성·검증 (#89)
@@ -442,30 +442,16 @@ SQL은 테이블 존재, 11개 컬럼, 최근 기록, 사용자별 성공·실�
 
 검증 순서:
 
-1. `logs.router`를 앱에 등록하고 `/logs` 화면을 실제 CRUD에 연결한다.
-2. 시연계정 1로 로그인해 질문하고, SQL의 `chat_id`, `request_id`, 질문·답변·시각을 기록한다.
-3. 브라우저에서 `/api/me/chats?limit=20&offset=0`과 `/logs`를 열어 자신의 기록을 확인한다.
-4. 시연계정 2에서는 시연계정 1의 기록이 보이지 않는지, 비로그인은 API 401인지 확인한다.
-5. **같은 환경으로 재배포**한 후, 같은 브랜치에서 기록한 `chat_id`를 재조회한다.
+1. 시연계정 1로 로그인해 질문하고, SQL의 `chat_id`, `request_id`, 질문·답변·시각을 기록한다.
+2. 브라우저에서 `/api/me/chats?limit=20&offset=0`과 `/logs`를 열어 자신의 기록을 확인한다.
+3. 시연계정 2에서는 시연계정 1의 기록이 보이지 않는지, 비로그인은 API 401인지 확인한다.
+4. **같은 환경으로 재배포**한 후, 같은 브랜치에서 기록한 `chat_id`를 재조회한다.
    이전 질문·답변·시각이 그대로 남아 있어야 한다. development와 production을 서로 비교하지 않는다.
-6. 브랜치명·확인 시각·배포 커밋·조회 결과를 캡처한다. DB 비밀번호, 키, 쿠키,
-   실제 사용자의 개인정보는 포함하지 않고 시연용 가상 데이터만 사용한다.
 
-### 검증 상태와 로컬 테스트
+### 검증 기록과 로컬 테스트
 
-아래 실제 환경 항목은 **실행 후 증빙을 붙일 때만** 완료 표시한다.
-
-2026-09-12 로컬 검증: 임시 PostgreSQL 17.11을 이용해 전체 테스트 **168개 통과**
-(실제 DB 테스트 17개 포함), `ruff check .` 통과. 기존 Starlette 의존성의
-DeprecationWarning 1건이 있다. 이 결과는 실제 Neon·배포 환경 검증을 대체하지 않는다.
-
-- [x] 두 Neon 브랜치의 `users`·`chat_logs` 생성 확인 — `python -m scripts.create_tables --confirm` 을
-  development·production 에 각각 실행 ([#89 기록](https://github.com/Teamb7-1/ai-chatbot-service/issues/89#issuecomment-5650323902))
-- [x] API 라우터 등록 및 `/logs` 화면 연결 — [#91](https://github.com/Teamb7-1/ai-chatbot-service/issues/91)
-  (PR #92). 비로그인 `/api/me/chats` 401, 로그인 후 `/logs` 200
-- [ ] 실제 질문 → AI 응답 → DB 저장 → 본인 기록 조회
-- [ ] SQL 콘솔 실행 결과 캡처
-- [ ] 재배포 전후 동일 대화 보존 캡처
+실제 환경 확인 기록은 [#89](https://github.com/Teamb7-1/ai-chatbot-service/issues/89#issuecomment-5658570572)에 있다 —
+두 브랜치 테이블 생성, `/logs` 연결, 스테이징에서 질문 2건 저장과 `check_logs.sql` 조회 결과, 재배포 후 보존.
 
 ```bash
 python -m pytest -q
