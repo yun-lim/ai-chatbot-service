@@ -65,7 +65,7 @@
     return { entry: entry, meta: meta, answer: answer };
   }
 
-  function settle(slot, text, isError, ms) {
+  function settle(slot, text, isError) {
     slot.entry.classList.remove("is-pending");
     if (isError) {
       // 오류 문구는 서버가 정한 평문이다. 서식으로 해석하지 않는다.
@@ -76,9 +76,6 @@
       slot.answer.classList.add("md");
     }
     slot.answer.classList.toggle("is-error", isError);
-    if (typeof ms === "number") {
-      slot.meta.appendChild(document.createTextNode(ms + "ms"));
-    }
     slot.entry.scrollIntoView({ block: "end" });
   }
 
@@ -122,7 +119,6 @@
     var time = document.createElement("b");
     time.textContent = fmtKst(item.created_at);
     meta.appendChild(time);
-    meta.appendChild(document.createTextNode(item.latency_ms + "ms"));
 
     var body = document.createElement("div");
     var ask = document.createElement("p");
@@ -217,8 +213,6 @@
     autoGrow();
     send.disabled = true;
 
-    var started = performance.now();
-
     fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -230,17 +224,15 @@
           .then(function (data) { return { ok: res.ok, status: res.status, data: data }; });
       })
       .then(function (r) {
-        var ms = Math.round(performance.now() - started);
-
         if (r.ok) {
-          settle(slot, r.data.answer, false, ms);
+          settle(slot, r.data.answer, false);
           return;
         }
         if (r.status === 401) {
           window.location.href = "/login";
           return;
         }
-        settle(slot, r.data.message || FALLBACK, true, ms);
+        settle(slot, r.data.message || FALLBACK, true);
       })
       .catch(function () {
         // 네트워크 자체가 끊긴 경우. 서버는 살아있을 수도 있으므로 단정하지 않는다.
