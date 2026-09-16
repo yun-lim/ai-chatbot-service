@@ -15,19 +15,7 @@
   {% else %}
     <div class="log">
       {% for it in items %}
-        <article class="entry">
-          <div class="entry-meta">
-            <b>{{ it.created_at | kst }}</b>
-            {{ it.latency_ms }}ms
-          </div>
-          <div>
-            <p class="ask bubble is-user">{{ it.question }}</p>
-            <p class="answer bubble is-bot{% if it.status == 'error' %} is-error{% endif %}">{{ it.answer }}</p>
-            {% if it.status == 'error' %}
-              <span class="badge is-error">{{ it.error_code }}</span>
-            {% endif %}
-          </div>
-        </article>
+        {% include "_entry.html" %}
       {% endfor %}
     </div>
   {% endif %}

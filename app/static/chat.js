@@ -87,6 +87,14 @@
     autoGrow();
   });
 
+  // 서버가 미리 그려 둔 지난 대화 (#145): 답변은 원문이라 같은 렌더러로 그리고, 마지막 항목이 보이게 한다.
+  document.querySelectorAll(".answer.is-bot:not(.is-error)").forEach(function (el) {
+    el.innerHTML = renderMarkdown(el.textContent);
+    el.classList.add("md");
+  });
+  var last = log.querySelector(".entry:last-child");
+  if (last) last.scrollIntoView({ block: "end" });
+
   // Enter 로 보내고 Shift+Enter 로 줄바꿈. 코드를 붙여넣는 서비스라 줄바꿈이 잦다.
   input.addEventListener("keydown", function (e) {
     // 한글 IME 가 마지막 글자를 조합하는 중의 Enter 는 조합 확정이지 전송이 아니다 (#139).
