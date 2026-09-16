@@ -67,9 +67,9 @@
 3. **실패도 기록한다.** AI 호출이 실패해도 `chat_logs` 에 실패 행이 남고, 요청마다 발급하는 `request_id`
    하나가 서버 로그 4줄과 DB 행을 묶는다. 사용자에게는 9종의 오류 코드 중 하나와 정해진 문구만 나간다.
    "무슨 일이 있었는지"를 나중에 로그와 DB 양쪽에서 되짚을 수 있게 하기 위해서다. (→ 3절 흐름, 5절 오류 코드)
-4. **협업은 자동화로.** 이슈 → 브랜치 → PR → CI → develop 머지 → 스테이징 배포가 사람 손 없이 이어지고,
-   프로덕션 릴리스만 사람이 누른다. 파일마다 담당자를 정해 남의 파일은 이슈로 넘긴다. 이 규칙은
-   [`AGENTS.md`](AGENTS.md) 와 [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) 에 있다. (→ 4절, 9절 배포)
+4. **협업은 자동화로.** 이슈마다 `feature/{이슈번호}-…` 브랜치를 파고, PR → CI → `develop` 머지 → 스테이징 배포가
+   사람 손 없이 이어진다. `main` 은 프로덕션이고 릴리스만 사람이 누른다. 파일마다 담당자를 정해 남의 파일은
+   이슈로 넘긴다. 이 규칙은 [`AGENTS.md`](AGENTS.md) 와 [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) 에 있다. (→ 4절, 9절 배포)
 
 ## 3. 시스템 구조
 
@@ -124,6 +124,9 @@ sequenceDiagram
 
 서버 로그 4줄(`request_received` → `ai_call_start` → `ai_call_success|failed` → `db_save_success|failed`)과
 `chat_logs.request_id` 가 같은 값을 써서, 요청 하나를 로그와 DB 양쪽에서 추적할 수 있다.
+
+요청 검증은 `schemas.py` 가 한다. `ChatRequest` 는 빈 문자열과 공백만 있는 메시지를 막고, `RegisterRequest` 는
+아이디 3~20자 · 비밀번호 8자 이상을 요구한다. 검증에 실패하면 `422 VALIDATION_ERROR` 와 안내 문구가 화면에 나간다.
 
 | 계층 | 책임 | 해서는 안 되는 것 |
 |---|---|---|
@@ -576,6 +579,7 @@ production·preview 양쪽에 등록하고, 스테이징은 `.env.preview` 로 �
 ### 환경 변수
 
 `.env.example` 을 복사해 사용한다. **실제 값은 리포에 커밋하지 않는다** — 공개 저장소다.
+`.env` 와 `.env.*` 는 `.gitignore` 로 제외돼 있어 저장소에는 `.env.example` 만 남는다.
 
 | 이름 | 설명 |
 |---|---|
