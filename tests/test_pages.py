@@ -160,6 +160,16 @@ def test_로그_화면은_본인_기록을_crud_한_곳에서_읽는다(logged_i
     assert "아직 기록이 없습니다" not in html
 
 
+def test_시각은_KST_로_보인다(logged_in):
+    """DB 는 UTC. 화면은 /chat 의 브라우저 시각과 같은 한국 시간이어야 한다 (#99)."""
+    crud.list_chat_logs.return_value = [_chat_log()]  # created_at = 2026-09-13 10:30 UTC
+
+    html = logged_in.get("/logs").text
+
+    assert "09/13 19:30" in html
+    assert "09/13 10:30" not in html
+
+
 def test_비로그인_기록_API는_JSON_401(client):
     response = client.get("/api/me/chats")
 

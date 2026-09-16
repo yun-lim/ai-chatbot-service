@@ -17,7 +17,7 @@
       {% for it in items %}
         <article class="entry">
           <div class="entry-meta">
-            <b>{{ it.created_at.strftime("%m/%d %H:%M") }}</b>
+            <b>{{ it.created_at | kst }}</b>
             {{ it.latency_ms }}ms
           </div>
           <div>

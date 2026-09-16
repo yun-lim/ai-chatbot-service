@@ -7,6 +7,8 @@
 DB 는 crud 한 곳을 통해서만 읽는다 (#36). 여기서 쿼리를 짜지 않는다.  → 평가항목 21
 """
 
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -16,6 +18,18 @@ from app.config import TEMPLATES_DIR
 from app.deps import CurrentUser, DbSession
 
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
+
+# DB 는 UTC 로 저장한다. 화면은 한국 시간으로 — /chat 의 브라우저 시각과 같은 기준이어야
+# 같은 대화가 두 화면에서 9시간 다르게 보이지 않는다. KST 는 DST 가 없어 고정 오프셋이면
+# 충분하고, 서버리스 런타임의 tz 데이터베이스에 기대지 않는다.
+KST = timezone(timedelta(hours=9), name="KST")
+
+
+def _kst(value: datetime) -> str:
+    return value.astimezone(KST).strftime("%m/%d %H:%M")
+
+
+templates.env.filters["kst"] = _kst
 
 # 화면 라우트는 OpenAPI 문서에 넣지 않는다. /docs 는 B·C 가 계약을 보는 곳이라
 # HTML 라우트가 섞이면 읽어야 할 것이 묻힌다.

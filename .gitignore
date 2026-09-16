@@ -23,3 +23,6 @@ uv.lock
 
 # graphify 산출물 (로컬 분석용)
 graphify-out/
+
+# 다이어그램 뷰어 검사 스크린샷·리포트 (로컬 확인용). README 의 PNG 는 뷰어 UI 없이 따로 뽑는다.
+docs/architecture/*.visual-check.*
