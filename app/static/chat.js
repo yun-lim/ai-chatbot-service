@@ -47,11 +47,12 @@
     meta.appendChild(time);
 
     var body = document.createElement("div");
+    // 클래스 이름은 templates/logs.html 과 같아야 두 화면이 같은 CSS 를 탄다.
     var ask = document.createElement("p");
-    ask.className = "ask";
+    ask.className = "ask bubble is-user";
     ask.textContent = question;
     var answer = document.createElement("p");
-    answer.className = "answer";
+    answer.className = "answer bubble is-bot";
     answer.textContent = "답변을 만들고 있습니다…";
     body.appendChild(ask);
     body.appendChild(answer);
