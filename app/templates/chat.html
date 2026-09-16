@@ -9,7 +9,10 @@
 {% block content %}
   <p class="notice" id="notice" role="alert"></p>
 
-  <div class="log" id="log">
+  <div class="log" id="log"
+       data-history-limit="{{ history_limit }}" data-history-loaded="{{ items | length }}">
+    {# 맨 위 감시 요소 — 여기가 보이면 chat.js 가 더 오래된 대화를 불러와 바로 아래에 끼운다 (#148) #}
+    <div class="history-top" id="history-top" aria-live="polite"></div>
     {% if items %}
       {# 지난 대화를 오래된 순으로 미리 그린다 — 새로고침해도 대화가 이어진다 (#145) #}
       {% for it in items %}
