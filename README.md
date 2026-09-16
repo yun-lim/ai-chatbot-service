@@ -67,9 +67,9 @@
 3. **실패도 기록한다.** AI 호출이 실패해도 `chat_logs` 에 실패 행이 남고, 요청마다 발급하는 `request_id`
    하나가 서버 로그 4줄과 DB 행을 묶는다. 사용자에게는 9종의 오류 코드 중 하나와 정해진 문구만 나간다.
    "무슨 일이 있었는지"를 나중에 로그와 DB 양쪽에서 되짚을 수 있게 하기 위해서다. (→ 3절 흐름, 5절 오류 코드)
-4. **협업은 자동화로.** 이슈 → 브랜치 → PR → CI → develop 머지 → 스테이징 배포가 사람 손 없이 이어지고,
-   프로덕션 릴리스만 사람이 누른다. 파일마다 담당자를 정해 남의 파일은 이슈로 넘긴다. 이 규칙은
-   [`AGENTS.md`](AGENTS.md) 와 [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) 에 있다. (→ 4절, 9절 배포)
+4. **협업은 자동화로.** 이슈마다 `feature/{이슈번호}-…` 브랜치를 파고, PR → CI → `develop` 머지 → 스테이징 배포가
+   사람 손 없이 이어진다. `main` 은 프로덕션이고 릴리스만 사람이 누른다. 파일마다 담당자를 정해 남의 파일은
+   이슈로 넘긴다. 이 규칙은 [`AGENTS.md`](AGENTS.md) 와 [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) 에 있다. (→ 4절, 9절 배포)
 
 ## 3. 시스템 구조
 
@@ -124,6 +124,9 @@ sequenceDiagram
 
 서버 로그 4줄(`request_received` → `ai_call_start` → `ai_call_success|failed` → `db_save_success|failed`)과
 `chat_logs.request_id` 가 같은 값을 써서, 요청 하나를 로그와 DB 양쪽에서 추적할 수 있다.
+
+요청 검증은 `schemas.py` 가 한다. `ChatRequest` 는 빈 문자열과 공백만 있는 메시지를 막고, `RegisterRequest` 는
+아이디 3~20자 · 비밀번호 8자 이상을 요구한다. 검증에 실패하면 `422 VALIDATION_ERROR` 와 안내 문구가 화면에 나간다.
 
 | 계층 | 책임 | 해서는 안 되는 것 |
 |---|---|---|
@@ -191,8 +194,20 @@ sequenceDiagram
 
 ### 손재현 — 챗봇·AI (`sonjehyun123-maker`)
 
-- 담당 파일: `app/services/ai_client.py` `app/services/chat_service.py` `app/routers/chat.py`
-- 작업 요약: _(손재현 작성)_
+* 담당 파일: `app/services/ai_client.py` `app/services/chat_service.py` `app/routers/chat.py`
+
+* 작업 요약:
+
+  * **AI API 연동** — `AsyncOpenAI`를 이용해 AI API 호출을 담당하는 `ai_client.py`를 구현했다. API 키와 모델 설정은 환경변수에서 가져오고, 시스템 프롬프트와 대화 메시지를 구성해 AI 응답을 생성하도록 했다. 타임아웃과 재시도 정책을 적용하고 SDK에서 발생하는 예외를 프로젝트의 `AppError`·`ErrorCode`로 변환했다. ([#35](https://github.com/Teamb7-1/ai-chatbot-service/issues/35))
+
+  * **챗봇 파이프라인** — `chat_service.py`에서 요청 ID 생성 → 최근 대화 조회 → AI 메시지 구성 → AI 호출 → 처리 시간 측정 → 결과 저장의 흐름을 구현했다. `AI_CONTEXT_TURNS=5`를 기준으로 사용자의 최근 성공 대화 5턴을 조회해 현재 질문과 함께 AI에 전달하고, 성공·실패 결과와 latency 및 오류 코드를 DB에 기록하도록 했다. ([#35](https://github.com/Teamb7-1/ai-chatbot-service/issues/35), [#49](https://github.com/Teamb7-1/ai-chatbot-service/issues/49))
+
+  * **채팅 API** — `POST /api/chat` 엔드포인트를 구현해 `ChatRequest`를 받고 `CurrentUser`, `DbSession`을 이용해 인증된 사용자의 챗봇 요청을 처리하도록 연결했다. 처리 결과는 `ChatResponse`의 `answer`, `chat_id` 형태로 반환하도록 구성했다. ([#49](https://github.com/Teamb7-1/ai-chatbot-service/issues/49))
+
+  * **오류·실패 처리** — AI API의 타임아웃, Rate Limit, API 오류 등을 공통 오류 코드로 변환하고, 챗봇 처리 중 실패한 요청도 `ChatLog`에 오류 코드와 처리 시간 등을 저장한 뒤 상위 계층의 공통 오류 처리로 전달하도록 구성했다. ([#35](https://github.com/Teamb7-1/ai-chatbot-service/issues/35))
+
+  AI 호출은 `ai_client.py`, 챗봇의 비즈니스 흐름은 `chat_service.py`, HTTP 요청 처리는 `routers/chat.py`로 분리해 각 계층의 역할을 구분했다. 대화 조회와 저장은 `crud`를 사용하고 인증과 DB 세션은 `app.deps`의 공통 의존성을 사용해 기존 팀 코드와 연결했다. ([#35](https://github.com/Teamb7-1/ai-chatbot-service/issues/35), [#49](https://github.com/Teamb7-1/ai-chatbot-service/issues/49))
+
 
 ### 최건영 — DB·로그 (`00skgun`)
 
@@ -204,7 +219,7 @@ sequenceDiagram
 ORM 객체 반환 방식으로 조회·저장 함수의 사용 방법을 맞췄다.
 
 - **DB 환경과 연결 기반** — PostgreSQL 제공자로 Neon을 선정하고 development·production
-  브랜치를 분리해 pooled 연결 정보를 임익화에게 비공개로 전달했다. SQLAlchemy·psycopg
+  브랜치를 분리했다. SQLAlchemy·psycopg
   의존성을 추가하고, `DATABASE_URL` 환경변수를 사용하는 `engine`, `SessionLocal`,
   ORM 공통 기반인 `Base`를 구성했다.
   ([#70](https://github.com/Teamb7-1/ai-chatbot-service/issues/70),
@@ -248,7 +263,7 @@ ORM 객체 반환 방식으로 조회·저장 함수의 사용 방법을 맞췄�
 ### 임익화 — 앱 골격 · 화면 · 인프라 (`zxcv718`)
 
 - 담당 파일: `app/main.py` `config.py` `schemas.py` `logging_config.py` · `routers/pages.py` `templates/base·chat·logs` `static/` · `.github/` `vercel.json` `scripts/vercel-env-push.sh`
-- 작업 요약 (커밋 74 · 이슈 번호는 PR 과 1:1):
+- 작업 요약 (이슈 번호는 PR 과 1:1):
   - **앱 골격** — FastAPI 진입점, 요청/응답/오류 스키마와 `AppError`, 전역 예외 핸들러로 오류 응답 형식 통일 (#1 #24 #46), `request_id` 미들웨어와 로깅 설정 (#37)
   - **화면** — 디자인 토큰·템플릿·`chat.js` (#1), 화면 라우터 `pages.py` (#51 #75), 인증 연결과 로그아웃 (#68), `/logs` 데이터 연결과 KST 표시 (#91 #99), `/api/chat` 라우터 등록 (#94)
   - **인프라·CI** — Vercel 단일 함수 배포와 스테이징/프로덕션 분리, `autopr → ci → automerge → close-issue → deploy` 자동화 (#1 #26 #31 #61), 환경변수 등록 스크립트 (#57 #63), CI 더미 `DATABASE_URL` (#78), Neon 두 브랜치 테이블 생성·검증 (#89)
@@ -352,12 +367,15 @@ ORM 객체 반환 방식으로 조회·저장 함수의 사용 방법을 맞췄�
 
 ### 페이지 구성
 
-| 경로 | 설명 |
-|---|---|
-| `/` | 로그인 |
-| `/register` | 회원가입 |
-| `/chat` | AI 채팅 |
-| `/docs` | Swagger UI |
+| 경로          | 설명              |
+| ----------- | --------------- |
+| `/`         | `/chat`으로 리다이렉트 |
+| `/login`    | 로그인             |
+| `/register` | 회원가입            |
+| `/chat`     | AI 채팅           |
+| `/logs`     | 대화 기록           |
+| `/docs`     | Swagger UI      |
+
 
 ### 주요 오류 코드
 
@@ -366,7 +384,7 @@ ORM 객체 반환 방식으로 조회·저장 함수의 사용 방법을 맞췄�
 | `401` | `NOT_AUTHENTICATED`, `INVALID_CREDENTIALS` |
 | `409` | `DUPLICATE_USERNAME` |
 | `422` | `VALIDATION_ERROR` |
-| `503` | `AI_TIMEOUT`, `AI_ERROR`, `AI_UNKNOWN` |
+| `503` | `AI_TIMEOUT`, `AI_ERROR`, `AI_UNKNOWN`, `RATE_LIMITED` |
 | `500` | `INTERNAL_ERROR` |
 
 ## 6. DB 구조
@@ -439,30 +457,16 @@ SQL은 테이블 존재, 11개 컬럼, 최근 기록, 사용자별 성공·실�
 
 검증 순서:
 
-1. `logs.router`를 앱에 등록하고 `/logs` 화면을 실제 CRUD에 연결한다.
-2. 시연계정 1로 로그인해 질문하고, SQL의 `chat_id`, `request_id`, 질문·답변·시각을 기록한다.
-3. 브라우저에서 `/api/me/chats?limit=20&offset=0`과 `/logs`를 열어 자신의 기록을 확인한다.
-4. 시연계정 2에서는 시연계정 1의 기록이 보이지 않는지, 비로그인은 API 401인지 확인한다.
-5. **같은 환경으로 재배포**한 후, 같은 브랜치에서 기록한 `chat_id`를 재조회한다.
+1. 시연계정 1로 로그인해 질문하고, SQL의 `chat_id`, `request_id`, 질문·답변·시각을 기록한다.
+2. 브라우저에서 `/api/me/chats?limit=20&offset=0`과 `/logs`를 열어 자신의 기록을 확인한다.
+3. 시연계정 2에서는 시연계정 1의 기록이 보이지 않는지, 비로그인은 API 401인지 확인한다.
+4. **같은 환경으로 재배포**한 후, 같은 브랜치에서 기록한 `chat_id`를 재조회한다.
    이전 질문·답변·시각이 그대로 남아 있어야 한다. development와 production을 서로 비교하지 않는다.
-6. 브랜치명·확인 시각·배포 커밋·조회 결과를 캡처한다. DB 비밀번호, 키, 쿠키,
-   실제 사용자의 개인정보는 포함하지 않고 시연용 가상 데이터만 사용한다.
 
-### 검증 상태와 로컬 테스트
+### 검증 기록과 로컬 테스트
 
-아래 실제 환경 항목은 **실행 후 증빙을 붙일 때만** 완료 표시한다.
-
-2026-09-12 로컬 검증: 임시 PostgreSQL 17.11을 이용해 전체 테스트 **168개 통과**
-(실제 DB 테스트 17개 포함), `ruff check .` 통과. 기존 Starlette 의존성의
-DeprecationWarning 1건이 있다. 이 결과는 실제 Neon·배포 환경 검증을 대체하지 않는다.
-
-- [x] 두 Neon 브랜치의 `users`·`chat_logs` 생성 확인 — `python -m scripts.create_tables --confirm` 을
-  development·production 에 각각 실행 ([#89 기록](https://github.com/Teamb7-1/ai-chatbot-service/issues/89#issuecomment-5650323902))
-- [x] API 라우터 등록 및 `/logs` 화면 연결 — [#91](https://github.com/Teamb7-1/ai-chatbot-service/issues/91)
-  (PR #92). 비로그인 `/api/me/chats` 401, 로그인 후 `/logs` 200
-- [ ] 실제 질문 → AI 응답 → DB 저장 → 본인 기록 조회
-- [ ] SQL 콘솔 실행 결과 캡처
-- [ ] 재배포 전후 동일 대화 보존 캡처
+실제 환경 확인 기록은 [#89](https://github.com/Teamb7-1/ai-chatbot-service/issues/89#issuecomment-5658570572)에 있다 —
+두 브랜치 테이블 생성, `/logs` 연결, 스테이징에서 질문 2건 저장과 `check_logs.sql` 조회 결과, 재배포 후 보존.
 
 ```bash
 python -m pytest -q
@@ -575,6 +579,7 @@ production·preview 양쪽에 등록하고, 스테이징은 `.env.preview` 로 �
 ### 환경 변수
 
 `.env.example` 을 복사해 사용한다. **실제 값은 리포에 커밋하지 않는다** — 공개 저장소다.
+`.env` 와 `.env.*` 는 `.gitignore` 로 제외돼 있어 저장소에는 `.env.example` 만 남는다.
 
 | 이름 | 설명 |
 |---|---|
