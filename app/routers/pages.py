@@ -74,5 +74,7 @@ def logs_page(request: Request, user: CurrentUser, db: DbSession):
     """지난 대화 화면. 본인 기록만, 최신순."""
     items = crud.list_chat_logs(db, user.id)
     return templates.TemplateResponse(
-        request, "logs.html", {"user": user, "items": items}
+        request,
+        "logs.html",
+        {"user": user, "items": items, "show_latency": True},
     )

@@ -3,7 +3,8 @@
 <article class="entry">
   <div class="entry-meta">
     <b>{{ it.created_at | kst }}</b>
-    {{ it.latency_ms }}ms
+    {# 응답 시간은 운영 추적값 — 확인용 화면(/logs)에서만 보인다 (#151) #}
+    {% if show_latency %}{{ it.latency_ms }}ms{% endif %}
   </div>
   <div>
     <p class="ask bubble is-user">{{ it.question }}</p>

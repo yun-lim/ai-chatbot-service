@@ -154,6 +154,30 @@ def test_맨_위에_닿으면_다음_묶음을_API_로_불러온다(client):
     assert '"ask bubble is-user"' in js and '"answer bubble is-bot"' in js
 
 
+def test_채팅_화면의_지난_대화에는_시각만_있고_응답_시간은_없다(logged_in):
+    """ms 는 운영 추적값이다. 학습자가 채팅하며 볼 값이 아니라 /logs 에만 둔다.  → #151"""
+    crud.list_chat_logs.return_value = [_chat_log(latency_ms=321)]
+
+    html = logged_in.get("/chat").text
+
+    assert "09/13 19:30" in html
+    assert "321ms" not in html
+
+
+def test_기록_화면에는_응답_시간이_보인다(logged_in):
+    crud.list_chat_logs.return_value = [_chat_log(latency_ms=321)]
+
+    html = logged_in.get("/logs").text
+
+    assert "09/13 19:30" in html and "321ms" in html
+
+
+def test_채팅_화면의_실시간_답변에도_응답_시간을_붙이지_않는다(client):
+    js = client.get("/static/chat.js").text
+
+    assert '"ms"' not in js
+
+
 def test_지난_대화가_없으면_안내_문구만_보인다(logged_in):
     html = logged_in.get("/chat").text
 
