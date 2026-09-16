@@ -4,7 +4,8 @@
 //   → S9 로그아웃 → S8 둘째 계정엔 기록 없음 → S9b 다시 차단
 //
 // 실행 (Aside 앱이 떠 있어야 한다. 계정은 매번 새로 만든다):
-//   aside repl "$(sed 's#__BASE_URL__#https://b7-ai-chatbot-dev.vercel.app#' tests/e2e/demo_flow.js)"
+//   aside repl "$(sed -e 's#__BASE_URL__#https://b7-ai-chatbot-dev.vercel.app#' -e "s#__PASSWORD__#$DEMO_PASSWORD#" tests/e2e/demo_flow.js)"
+// 비밀번호는 치환으로만 넣는다 — 공개 리포에 시연 계정 비밀번호를 남기지 않는다.
 //
 // 단계마다 PASS/FAIL 을 출력하고, FAIL 이면 그 자리에서 멈춘다.
 // pytest 가 아니라 브라우저 REPL 스크립트다 — 서버 코드는 한 줄도 건드리지 않는다.
@@ -20,7 +21,8 @@ const stamp = `${pad(kst.getUTCMonth() + 1)}${pad(kst.getUTCDate())}-${pad(kst.g
 const TODAY_KST = `${pad(kst.getUTCMonth() + 1)}/${pad(kst.getUTCDate())}`;
 const USER1 = `demo-${stamp}`;          // 3~20자
 const USER2 = `demo2-${stamp}`;
-const PASSWORD = 'Demo-pass-2026!';
+const PASSWORD = '__PASSWORD__';
+if (PASSWORD.startsWith('__')) throw new Error('__PASSWORD__ 를 치환하지 않았다 (DEMO_PASSWORD 환경변수)');
 const WRONG_PASSWORD = 'wrong-pass-0000';
 const Q1 = '파이썬에서 IndexError 는 왜 나요?';
 const Q2 = '방금 내가 물어본 게 뭐였지?';
