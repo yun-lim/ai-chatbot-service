@@ -191,8 +191,20 @@ sequenceDiagram
 
 ### 손재현 — 챗봇·AI (`sonjehyun123-maker`)
 
-- 담당 파일: `app/services/ai_client.py` `app/services/chat_service.py` `app/routers/chat.py`
-- 작업 요약: _(손재현 작성)_
+* 담당 파일: `app/services/ai_client.py` `app/services/chat_service.py` `app/routers/chat.py`
+
+* 작업 요약:
+
+  * **AI API 연동** — `AsyncOpenAI`를 이용해 AI API 호출을 담당하는 `ai_client.py`를 구현했다. API 키와 모델 설정은 환경변수에서 가져오고, 시스템 프롬프트와 대화 메시지를 구성해 AI 응답을 생성하도록 했다. 타임아웃과 재시도 정책을 적용하고 SDK에서 발생하는 예외를 프로젝트의 `AppError`·`ErrorCode`로 변환했다. ([#35](https://github.com/Teamb7-1/ai-chatbot-service/issues/35))
+
+  * **챗봇 파이프라인** — `chat_service.py`에서 요청 ID 생성 → 최근 대화 조회 → AI 메시지 구성 → AI 호출 → 처리 시간 측정 → 결과 저장의 흐름을 구현했다. `AI_CONTEXT_TURNS=5`를 기준으로 사용자의 최근 성공 대화 5턴을 조회해 현재 질문과 함께 AI에 전달하고, 성공·실패 결과와 latency 및 오류 코드를 DB에 기록하도록 했다. ([#35](https://github.com/Teamb7-1/ai-chatbot-service/issues/35), [#49](https://github.com/Teamb7-1/ai-chatbot-service/issues/49))
+
+  * **채팅 API** — `POST /api/chat` 엔드포인트를 구현해 `ChatRequest`를 받고 `CurrentUser`, `DbSession`을 이용해 인증된 사용자의 챗봇 요청을 처리하도록 연결했다. 처리 결과는 `ChatResponse`의 `answer`, `chat_id` 형태로 반환하도록 구성했다. ([#49](https://github.com/Teamb7-1/ai-chatbot-service/issues/49))
+
+  * **오류·실패 처리** — AI API의 타임아웃, Rate Limit, API 오류 등을 공통 오류 코드로 변환하고, 챗봇 처리 중 실패한 요청도 `ChatLog`에 오류 코드와 처리 시간 등을 저장한 뒤 상위 계층의 공통 오류 처리로 전달하도록 구성했다. ([#35](https://github.com/Teamb7-1/ai-chatbot-service/issues/35))
+
+  AI 호출은 `ai_client.py`, 챗봇의 비즈니스 흐름은 `chat_service.py`, HTTP 요청 처리는 `routers/chat.py`로 분리해 각 계층의 역할을 구분했다. 대화 조회와 저장은 `crud`를 사용하고 인증과 DB 세션은 `app.deps`의 공통 의존성을 사용해 기존 팀 코드와 연결했다. ([#35](https://github.com/Teamb7-1/ai-chatbot-service/issues/35), [#49](https://github.com/Teamb7-1/ai-chatbot-service/issues/49))
+
 
 ### 최건영 — DB·로그 (`00skgun`)
 
