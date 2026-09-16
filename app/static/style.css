@@ -192,54 +192,79 @@ main {
   margin: 0 0 2rem;
 }
 
-/* ── 거터 — 이 시스템의 뼈대 ─────────────────────────────── */
+/* ── 말풍선 — 내 질문은 오른쪽, 답변은 왼쪽 ──────────────── */
 
-.log { margin: 0; }
-
-.entry {
-  display: grid;
-  grid-template-columns: var(--gutter) 1fr;
-  column-gap: 1.25rem;
-  padding: 1rem 0;
+.log {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
-.entry + .entry { border-top: 1px solid var(--rule); }
+/* 항목 = 말풍선 둘 + 메타 한 줄. 마크업은 메타가 먼저지만 화면에선 아래로 보낸다. */
+.entry {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.entry > div:not(.entry-meta) {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
 
 .entry-meta {
+  order: 2;
   font-family: var(--mono);
   font-size: var(--fs-meta);
   color: var(--muted);
   text-align: right;
-  padding-top: 0.15rem;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
 
 .entry-meta b {
-  display: block;
   font-weight: 500;
   color: var(--muted);
+  margin-right: 0.5rem;
 }
 
-/* 질문 — 색인이므로 작고 조용하게 */
-.ask {
-  font-size: var(--fs-ask);
-  color: var(--muted);
-  margin: 0 0 0.625rem;
+.bubble {
+  max-width: 80%;
+  margin: 0;
+  padding: 0.7rem 1rem;
+  border-radius: 16px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  line-height: 1.65;
 }
 
-/* 답변 — 본문이므로 크고 읽기 좋게 */
-.answer {
+/* 내 질문 — 오른쪽, 강조색 배경 */
+.bubble.is-user {
+  align-self: flex-end;
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 1rem;
+  border-bottom-right-radius: 4px;
+}
+
+/* 답변 — 왼쪽, 카드 배경 + 테두리 */
+.bubble.is-bot {
+  align-self: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  box-shadow: var(--shadow);
   font-size: var(--fs-answer);
   line-height: 1.75;
-  margin: 0;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  border-bottom-left-radius: 4px;
 }
 
-.answer.is-error { color: var(--error); }
+.answer.is-error {
+  color: var(--error);
+  border-color: var(--error);
+  background: var(--error-soft);
+}
 
 .entry.is-pending .answer { color: var(--muted); }
 
