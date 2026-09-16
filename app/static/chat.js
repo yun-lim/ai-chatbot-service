@@ -82,6 +82,9 @@
 
   // Enter 로 보내고 Shift+Enter 로 줄바꿈. 코드를 붙여넣는 서비스라 줄바꿈이 잦다.
   input.addEventListener("keydown", function (e) {
+    // 한글 IME 가 마지막 글자를 조합하는 중의 Enter 는 조합 확정이지 전송이 아니다 (#139).
+    // 이때 보내면 조합 중이던 글자가 빈 입력창에 다시 들어가 한 글자짜리 질문이 한 번 더 나간다.
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       form.requestSubmit();
@@ -90,6 +93,8 @@
 
   form.addEventListener("submit", function (e) {
     e.preventDefault();
+    // 버튼만 비활성화하면 Enter(requestSubmit)로는 여전히 보낼 수 있다. 응답을 기다리는 동안은 여기서 막는다.
+    if (send.disabled) return;
     notice.textContent = "";
 
     var question = input.value;

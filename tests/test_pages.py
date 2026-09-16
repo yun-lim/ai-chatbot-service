@@ -206,6 +206,25 @@ def test_말풍선은_좌우_정렬과_배경으로_갈린다(client):
     assert bot and "flex-start" in bot.group(0) and "var(--surface)" in bot.group(0)
 
 
+def test_한글_조합_중_Enter는_전송하지_않는다(client):
+    """IME 가 마지막 글자를 조합하는 중의 Enter(isComposing)는 조합 확정이지 전송이 아니다.
+
+    이때 보내면 조합 중이던 글자가 빈 입력창에 다시 들어가 한 글자짜리 질문이 한 번 더 나간다.
+    """
+    js = client.get("/static/chat.js").text
+    keydown = js[js.index('addEventListener("keydown"') : js.index('addEventListener("submit"')]
+
+    assert "isComposing" in keydown
+
+
+def test_응답을_기다리는_동안은_다시_전송하지_않는다(client):
+    """보내기 버튼만 비활성화하면 Enter(requestSubmit)로는 여전히 보낼 수 있다. submit 자체가 막아야 한다."""
+    js = client.get("/static/chat.js").text
+    submit = js[js.index('addEventListener("submit"') : js.index("var slot = addEntry(question)")]
+
+    assert "send.disabled" in submit
+
+
 def test_비로그인_기록_API는_JSON_401(client):
     response = client.get("/api/me/chats")
 
