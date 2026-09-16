@@ -55,7 +55,7 @@
 | 화면 | Jinja2 서버 템플릿 + 채팅 송수신만 `fetch` | 새로고침 없이 대화 유지 |
 | DB | Neon PostgreSQL · SQLAlchemy 2.x · psycopg 3 | pooled 연결, development·production 분리 |
 | 인증 | JWT + HttpOnly 쿠키 (라이브러리 사용) | |
-| AI | 9/1 확정 | 타임아웃 10초 |
+| AI | 코디세이 OpenAI 호환 API(`copa.codyssey.kr/v1`) · `gpt-5.4-mini` · `openai` SDK | 타임아웃 10초, 타임아웃·API 오류는 1회 재시도. 모델명·문맥 5턴은 `config.py` 상수 |
 | 배포 | Vercel (GitHub Actions에서 CLI 배포) | |
 
 DB 제공자는 **Neon Free**로 확정하고 두 브랜치의 pooled 연결 문자열을 임익화에게 비공개 전달했다.
@@ -393,11 +393,16 @@ SQL은 테이블 존재, 11개 컬럼, 최근 기록, 사용자별 성공·실�
 (실제 DB 테스트 17개 포함), `ruff check .` 통과. 기존 Starlette 의존성의
 DeprecationWarning 1건이 있다. 이 결과는 실제 Neon·배포 환경 검증을 대체하지 않는다.
 
-- [ ] 임익화: 두 Neon 브랜치의 `users`·`chat_logs` 생성 확인
-- [ ] 임익화: API 라우터 등록 및 `/logs` 화면 연결
+- [x] 임익화: 두 Neon 브랜치의 `users`·`chat_logs` 생성 확인 — `python -m scripts.create_tables --confirm` 을
+  development·production 에 각각 실행 ([#89 기록](https://github.com/Teamb7-1/ai-chatbot-service/issues/89#issuecomment-5650323902))
+- [x] 임익화: API 라우터 등록 및 `/logs` 화면 연결 — [#91](https://github.com/Teamb7-1/ai-chatbot-service/issues/91)
+  (PR #92). 비로그인 `/api/me/chats` 401, 로그인 후 `/logs` 200
 - [ ] 손재현·임익화·최건영: 실제 질문 → AI 응답 → DB 저장 → 본인 기록 조회
 - [ ] 최건영·임익화: SQL 콘솔 실행 결과 캡처
 - [ ] 최건영·임익화: 재배포 전후 동일 대화 보존 캡처
+
+`/logs` 연결 확인은 2026-09-13 스테이징(Neon development 브랜치) 기준이다. production 브랜치는
+테이블 생성까지 확인했고 대화 데이터는 비어 있다.
 
 ```bash
 python -m pytest -q
@@ -520,11 +525,11 @@ ORM 객체 반환 방식으로 조회·저장 함수의 사용 방법을 맞췄�
 ### 임익화 — 앱 골격 · 화면 · 인프라 (`zxcv718`)
 
 - 담당 파일: `app/main.py` `config.py` `schemas.py` `logging_config.py` · `routers/pages.py` `templates/base·chat·logs` `static/` · `.github/` `vercel.json` `scripts/vercel-env-push.sh`
-- 작업 요약 (커밋 68 · 이슈 번호는 PR 과 1:1):
+- 작업 요약 (커밋 70 · 이슈 번호는 PR 과 1:1):
   - **앱 골격** — FastAPI 진입점, 요청/응답/오류 스키마와 `AppError`, 전역 예외 핸들러로 오류 응답 형식 통일 (#1 #24 #46), `request_id` 미들웨어와 로깅 설정 (#37)
   - **화면** — 디자인 토큰·템플릿·`chat.js` (#1), 화면 라우터 `pages.py` (#51 #75), 인증 연결과 로그아웃 (#68), `/logs` 데이터 연결과 KST 표시 (#91 #99), `/api/chat` 라우터 등록 (#94)
   - **인프라·CI** — Vercel 단일 함수 배포와 스테이징/프로덕션 분리, `autopr → ci → automerge → close-issue → deploy` 자동화 (#1 #26 #31 #61), 환경변수 등록 스크립트 (#57 #63), CI 더미 `DATABASE_URL` (#78), Neon 두 브랜치 테이블 생성·검증 (#89)
-  - **문서·규칙** — README 골격과 §2~§5 (#1 #55 #82), archify 아키텍처와 요청 시퀀스 (#96), `AGENTS.md`·`CONTRIBUTING`·이슈/PR 템플릿 (#28 #41 #53 #80)
+  - **문서·규칙** — README 골격과 §2~§5·§9·§10 (#1 #55 #82 #101 #112), archify 아키텍처와 요청 시퀀스 (#96), `AGENTS.md`·`CONTRIBUTING`·이슈/PR 템플릿 (#28 #41 #53 #80)
 
 ## 10. 트러블슈팅
 
