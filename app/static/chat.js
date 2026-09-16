@@ -95,6 +95,99 @@
   var last = log.querySelector(".entry:last-child");
   if (last) last.scrollIntoView({ block: "end" });
 
+  // ── 더 오래된 대화 불러오기 (#148) ──────────────────────────────
+  // 서버는 최근 HISTORY_LIMIT 건만 그린다. 맨 위 감시 요소가 보이면 다음 묶음을 C 의 조회 API 로 받아
+  // 감시 요소 바로 아래에 끼운다. 첫 화면이 한도보다 적었으면 더 없는 것이다.
+  var historyTop = document.getElementById("history-top");
+  var HISTORY_LIMIT = parseInt(log.getAttribute("data-history-limit"), 10) || 50;
+  var historyLoaded = parseInt(log.getAttribute("data-history-loaded"), 10) || 0;
+  var historyDone = historyLoaded < HISTORY_LIMIT;
+  var historyBusy = false;
+
+  // API 의 created_at 은 UTC. 서버 렌더링(kst 필터)과 같은 "MM/DD HH:MM" 로 맞춘다.
+  function fmtKst(iso) {
+    var d = new Date(new Date(iso).getTime() + 9 * 60 * 60 * 1000);
+    var p = function (n) { return String(n).padStart(2, "0"); };
+    return p(d.getUTCMonth() + 1) + "/" + p(d.getUTCDate()) + " " +
+           p(d.getUTCHours()) + ":" + p(d.getUTCMinutes());
+  }
+
+  // templates/_entry.html 과 같은 마크업. 서버가 그린 항목과 같은 CSS 를 탄다.
+  function buildEntry(item) {
+    var entry = document.createElement("article");
+    entry.className = "entry";
+
+    var meta = document.createElement("div");
+    meta.className = "entry-meta";
+    var time = document.createElement("b");
+    time.textContent = fmtKst(item.created_at);
+    meta.appendChild(time);
+    meta.appendChild(document.createTextNode(item.latency_ms + "ms"));
+
+    var body = document.createElement("div");
+    var ask = document.createElement("p");
+    ask.className = "ask bubble is-user";
+    ask.textContent = item.question;
+    var answer = document.createElement("p");
+    answer.className = "answer bubble is-bot";
+    if (item.status === "error") {
+      answer.classList.add("is-error");
+      answer.textContent = item.answer;
+    } else {
+      answer.innerHTML = renderMarkdown(item.answer);
+      answer.classList.add("md");
+    }
+    body.appendChild(ask);
+    body.appendChild(answer);
+    if (item.status === "error") {
+      var badge = document.createElement("span");
+      badge.className = "badge is-error";
+      badge.textContent = item.error_code;
+      body.appendChild(badge);
+    }
+
+    entry.appendChild(meta);
+    entry.appendChild(body);
+    return entry;
+  }
+
+  function loadOlder() {
+    if (historyDone || historyBusy) return;
+    historyBusy = true;
+    historyTop.textContent = "지난 대화를 불러오는 중…";
+
+    fetch("/api/me/chats?limit=" + HISTORY_LIMIT + "&offset=" + historyLoaded)
+      .then(function (res) {
+        if (!res.ok) throw new Error("status " + res.status);
+        return res.json();
+      })
+      .then(function (items) {
+        var before = document.documentElement.scrollHeight;
+        // API 는 최신순이다. 하나씩 감시 요소 바로 아래에 끼우면 결과적으로 오래된 것이 위로 간다.
+        items.forEach(function (item) {
+          historyTop.insertAdjacentElement("afterend", buildEntry(item));
+        });
+        historyLoaded += items.length;
+        historyDone = items.length < HISTORY_LIMIT;
+        // 위에 끼운 만큼 내려서 보던 자리를 유지한다 (.log 는 overflow-anchor: none).
+        window.scrollBy(0, document.documentElement.scrollHeight - before);
+        historyTop.textContent = "";
+      })
+      .catch(function () {
+        // 실패는 실패로 보인다. 감시 요소가 다시 보이면 다시 시도한다.
+        historyTop.textContent = "지난 대화를 불러오지 못했어요. 위로 다시 스크롤하면 재시도합니다.";
+      })
+      .finally(function () {
+        historyBusy = false;
+      });
+  }
+
+  if (!historyDone && "IntersectionObserver" in window) {
+    new IntersectionObserver(function (entries) {
+      if (entries[0].isIntersecting) loadOlder();
+    }, { rootMargin: "200px 0px 0px 0px" }).observe(historyTop);
+  }
+
   // Enter 로 보내고 Shift+Enter 로 줄바꿈. 코드를 붙여넣는 서비스라 줄바꿈이 잦다.
   input.addEventListener("keydown", function (e) {
     // 한글 IME 가 마지막 글자를 조합하는 중의 Enter 는 조합 확정이지 전송이 아니다 (#139).

@@ -132,6 +132,28 @@ def test_채팅_화면은_지난_대화를_오래된_순으로_미리_그린다(
     assert 'id="empty"' not in html
 
 
+def test_채팅_화면은_더_불러올_수_있는지_알려준다(logged_in):
+    """서버가 그린 수와 한도를 마크업에 남겨야 JS 가 다음 offset 을 안다.  → #148"""
+    from app.routers.pages import CHAT_HISTORY_LIMIT
+
+    crud.list_chat_logs.return_value = [_chat_log(id=2), _chat_log(id=1)]
+
+    html = logged_in.get("/chat").text
+
+    assert f'data-history-limit="{CHAT_HISTORY_LIMIT}"' in html
+    assert 'data-history-loaded="2"' in html
+    assert 'id="history-top"' in html
+
+
+def test_맨_위에_닿으면_다음_묶음을_API_로_불러온다(client):
+    """더 오래된 대화는 C 의 조회 API(limit · offset)로 받아 위에 끼운다. 서버 렌더링과 같은 마크업이어야 한다."""
+    js = client.get("/static/chat.js").text
+
+    assert "IntersectionObserver" in js
+    assert "/api/me/chats?limit=" in js and "offset=" in js
+    assert '"ask bubble is-user"' in js and '"answer bubble is-bot"' in js
+
+
 def test_지난_대화가_없으면_안내_문구만_보인다(logged_in):
     html = logged_in.get("/chat").text
 

@@ -63,7 +63,9 @@ def chat_page(request: Request, user: CurrentUser, db: DbSession):
     # crud 는 최신순으로 준다. 화면은 대화처럼 오래된 것부터 아래로 쌓는다.
     items = list(reversed(crud.list_chat_logs(db, user.id, limit=CHAT_HISTORY_LIMIT)))
     return templates.TemplateResponse(
-        request, "chat.html", {"user": user, "items": items}
+        request,
+        "chat.html",
+        {"user": user, "items": items, "history_limit": CHAT_HISTORY_LIMIT},
     )
 
 
