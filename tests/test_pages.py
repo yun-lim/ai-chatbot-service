@@ -225,6 +225,26 @@ def test_응답을_기다리는_동안은_다시_전송하지_않는다(client):
     assert "send.disabled" in submit
 
 
+def test_답변은_두_화면이_같은_마크다운_렌더러로_그린다(logged_in):
+    """chat.js 가 그리는 답변과 logs.html 의 답변이 같은 renderMarkdown 을 타야 같아 보인다."""
+    chat_html = logged_in.get("/chat").text
+    logs_html = logged_in.get("/logs").text
+    js = logged_in.get("/static/chat.js").text
+
+    assert 'src="/static/markdown.js"' in chat_html
+    assert 'src="/static/markdown.js"' in logs_html
+    assert "renderMarkdown(" in js
+    assert "renderMarkdown(" in logs_html
+
+
+def test_오류_답변은_마크다운으로_그리지_않는다(client):
+    """오류 문구는 서버가 정한 평문이다. settle 이 isError 일 때는 textContent 로 둔다."""
+    js = client.get("/static/chat.js").text
+    settle = js[js.index("function settle(") : js.index("input.addEventListener")]
+
+    assert "renderMarkdown(" in settle and "isError" in settle and "textContent" in settle
+
+
 def test_비로그인_기록_API는_JSON_401(client):
     response = client.get("/api/me/chats")
 

@@ -268,6 +268,37 @@ main {
 
 .entry.is-pending .answer { color: var(--muted); }
 
+/* 렌더링된 답변 — 마크다운을 태그로 바꾼 뒤엔 줄바꿈을 태그가 담당한다 */
+.answer.md { white-space: normal; }
+.answer.md > :first-child { margin-top: 0; }
+.answer.md > :last-child { margin-bottom: 0; }
+.answer.md p { margin: 0 0 0.7em; }
+.answer.md h3,
+.answer.md h4 { margin: 1em 0 0.35em; font-size: 1em; font-weight: 600; }
+.answer.md ul,
+.answer.md ol { margin: 0.3em 0 0.7em 1.3em; padding: 0; }
+.answer.md li { margin: 0.15em 0; }
+.answer.md code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+  background: var(--ground);
+  border-radius: 4px;
+  padding: 0.05em 0.35em;
+}
+.answer.md pre {
+  margin: 0.5em 0 0.8em;
+  padding: 0.7rem 0.9rem;
+  background: var(--ground);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  white-space: pre;
+}
+.answer.md pre code { background: none; padding: 0; font-size: inherit; }
+
 /* ── 상태 배지 ──────────────────────────────────────────── */
 
 .badge {
