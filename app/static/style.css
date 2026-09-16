@@ -199,7 +199,18 @@ main {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  /* 위에 항목을 끼울 때 스크롤 보정은 chat.js 가 직접 한다. 브라우저의 자동 앵커링과 겹치지 않게 끈다. */
+  overflow-anchor: none;
 }
+
+/* 맨 위 감시 요소 — 불러오는 중·실패 안내만 보인다 */
+.history-top {
+  min-height: 1px;
+  font-size: var(--fs-meta);
+  color: var(--muted);
+  text-align: center;
+}
+.history-top:empty { margin-bottom: -1.25rem; }
 
 /* 항목 = 말풍선 둘 + 메타 한 줄. 마크업은 메타가 먼저지만 화면에선 아래로 보낸다. */
 .entry {
