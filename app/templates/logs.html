@@ -32,3 +32,17 @@
     </div>
   {% endif %}
 {% endblock %}
+
+{% block below %}
+  <script src="/static/markdown.js" defer></script>
+  <script>
+    // 서버는 답변 원문을 그대로 내보내고, 화면에서 chat.js 와 같은 렌더러로 그린다 (#142).
+    // 오류 답변(is-error)은 서버가 정한 평문이라 건드리지 않는다.
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll(".answer.is-bot:not(.is-error)").forEach(function (el) {
+        el.innerHTML = renderMarkdown(el.textContent);
+        el.classList.add("md");
+      });
+    });
+  </script>
+{% endblock %}
