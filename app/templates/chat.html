@@ -10,7 +10,14 @@
   <p class="notice" id="notice" role="alert"></p>
 
   <div class="log" id="log">
-    <p class="empty" id="empty">막힌 곳을 물어보세요. 에러 메시지를 그대로 붙여넣어도 됩니다.</p>
+    {% if items %}
+      {# 지난 대화를 오래된 순으로 미리 그린다 — 새로고침해도 대화가 이어진다 (#145) #}
+      {% for it in items %}
+        {% include "_entry.html" %}
+      {% endfor %}
+    {% else %}
+      <p class="empty" id="empty">막힌 곳을 물어보세요. 에러 메시지를 그대로 붙여넣어도 됩니다.</p>
+    {% endif %}
   </div>
 {% endblock %}
 

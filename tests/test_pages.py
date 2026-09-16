@@ -117,6 +117,45 @@ def test_채팅_화면이_뜬다(logged_in):
     assert 'src="/static/chat.js"' in response.text
 
 
+def test_채팅_화면은_지난_대화를_오래된_순으로_미리_그린다(logged_in, user):
+    """새로고침해도 대화가 이어져야 한다. crud 는 최신순으로 주고, 화면은 오래된 것부터 아래로 쌓는다.  → #145"""
+    crud.list_chat_logs.return_value = [
+        _chat_log(id=2, question="두 번째 질문", answer="두 번째 답"),
+        _chat_log(id=1, question="첫 질문", answer="첫 답"),
+    ]
+
+    html = logged_in.get("/chat").text
+
+    assert crud.list_chat_logs.call_args.args[1] == user.id
+    assert html.index("첫 질문") < html.index("두 번째 질문")
+    assert html.count('class="ask bubble is-user"') == 2
+    assert 'id="empty"' not in html
+
+
+def test_지난_대화가_없으면_안내_문구만_보인다(logged_in):
+    html = logged_in.get("/chat").text
+
+    assert 'id="empty"' in html and "막힌 곳을 물어보세요" in html
+    assert 'class="ask bubble is-user"' not in html
+
+
+def test_두_화면은_같은_항목_템플릿을_쓴다():
+    """chat.html 과 logs.html 이 각자 마크업을 들고 있으면 한쪽만 고쳐 두 화면이 어긋난다."""
+    chat = (TEMPLATES_DIR / "chat.html").read_text(encoding="utf-8")
+    logs = (TEMPLATES_DIR / "logs.html").read_text(encoding="utf-8")
+
+    assert (TEMPLATES_DIR / "_entry.html").exists()
+    assert '{% include "_entry.html" %}' in chat
+    assert '{% include "_entry.html" %}' in logs
+
+
+def test_미리_그린_답변도_같은_마크다운_렌더러로_그린다(client):
+    """서버가 그려 둔 답변은 원문이다. chat.js 가 로드 직후 같은 렌더러로 바꾼다."""
+    js = client.get("/static/chat.js").text
+
+    assert '".answer.is-bot:not(.is-error)"' in js
+
+
 def test_화면에_누가_로그인했는지_보인다(logged_in):
     response = logged_in.get("/chat")
 
