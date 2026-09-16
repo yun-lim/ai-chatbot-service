@@ -373,7 +373,7 @@ ORM 객체 반환 방식으로 조회·저장 함수의 사용 방법을 맞췄�
 
 <!-- 담당 최건영 — 테이블·필드 또는 ERD (평가항목 4) -->
 
-`users`(임대균)와 `chat_logs`(최건영)는 사용자 1명 대 대화 여러 건의 관계다.
+`users`와 `chat_logs`는 사용자 1명 대 대화 여러 건의 관계다.
 `chat_logs.user_id`가 `users.id`를 참조한다. 전체 필드·제약·인덱스는 [ERD 문서](docs/ERD.md)에 정리했다.
 
 대화 테이블은 `id`, `user_id`, `request_id`, `question`, `answer`, `status`,
@@ -389,13 +389,12 @@ DB 접근은 동기 SQLAlchemy `Session`과 `app/crud.py`로 통일한다.
 
 ORM 객체의 `id`는 `chat_id` 속성을 통해 API의 `ChatLogItem`으로 변환한다.
 `GET /api/me/chats`는 로그인한 사용자 ID만 사용한다. URL의 `user_id`로 남의 기록을 요청할 수 없다.
-API·화면 등록은 임익화의 `main.py`·`routers/pages.py` 연동이 필요하다.
 
 ## 7. DB 확인 방법
 
 <!-- 담당 최건영 — 평가자가 직접 조회하는 절차 (평가항목 5) -->
 
-### 테이블 초기화 — 임익화가 두 브랜치에 각각 실행
+### 테이블 초기화 — 두 브랜치에 각각 실행
 
 1. 최신 코드를 받고 의존성을 설치한다. Neon 콘솔에서 대상이 **development**인지 확인한다.
 2. 해당 브랜치의 `DATABASE_URL`을 실행 프로세스에 안전하게 주입한다.
@@ -438,13 +437,13 @@ SQL은 테이블 존재, 11개 컬럼, 최근 기록, 사용자별 성공·실�
 확인하려는 `chat_id`로 각각 바꾼다. 데이터 변경 SQL은 포함하지 않는다.
 질문·답변이 없는 초기 DB는 빈 결과가 정상이며, 그것만으로 대화 저장이 검증된 것은 아니다.
 
-검증 순서(임익화·손재현 연동 후):
+검증 순서:
 
-1. 임익화가 `logs.router`를 앱에 등록하고 `/logs` 화면을 실제 CRUD에 연결한다.
+1. `logs.router`를 앱에 등록하고 `/logs` 화면을 실제 CRUD에 연결한다.
 2. 시연계정 1로 로그인해 질문하고, SQL의 `chat_id`, `request_id`, 질문·답변·시각을 기록한다.
 3. 브라우저에서 `/api/me/chats?limit=20&offset=0`과 `/logs`를 열어 자신의 기록을 확인한다.
 4. 시연계정 2에서는 시연계정 1의 기록이 보이지 않는지, 비로그인은 API 401인지 확인한다.
-5. 임익화가 **같은 환경으로 재배포**한 후, 같은 브랜치에서 기록한 `chat_id`를 재조회한다.
+5. **같은 환경으로 재배포**한 후, 같은 브랜치에서 기록한 `chat_id`를 재조회한다.
    이전 질문·답변·시각이 그대로 남아 있어야 한다. development와 production을 서로 비교하지 않는다.
 6. 브랜치명·확인 시각·배포 커밋·조회 결과를 캡처한다. DB 비밀번호, 키, 쿠키,
    실제 사용자의 개인정보는 포함하지 않고 시연용 가상 데이터만 사용한다.
@@ -457,13 +456,13 @@ SQL은 테이블 존재, 11개 컬럼, 최근 기록, 사용자별 성공·실�
 (실제 DB 테스트 17개 포함), `ruff check .` 통과. 기존 Starlette 의존성의
 DeprecationWarning 1건이 있다. 이 결과는 실제 Neon·배포 환경 검증을 대체하지 않는다.
 
-- [x] 임익화: 두 Neon 브랜치의 `users`·`chat_logs` 생성 확인 — `python -m scripts.create_tables --confirm` 을
+- [x] 두 Neon 브랜치의 `users`·`chat_logs` 생성 확인 — `python -m scripts.create_tables --confirm` 을
   development·production 에 각각 실행 ([#89 기록](https://github.com/Teamb7-1/ai-chatbot-service/issues/89#issuecomment-5650323902))
-- [x] 임익화: API 라우터 등록 및 `/logs` 화면 연결 — [#91](https://github.com/Teamb7-1/ai-chatbot-service/issues/91)
+- [x] API 라우터 등록 및 `/logs` 화면 연결 — [#91](https://github.com/Teamb7-1/ai-chatbot-service/issues/91)
   (PR #92). 비로그인 `/api/me/chats` 401, 로그인 후 `/logs` 200
-- [ ] 손재현·임익화·최건영: 실제 질문 → AI 응답 → DB 저장 → 본인 기록 조회
-- [ ] 최건영·임익화: SQL 콘솔 실행 결과 캡처
-- [ ] 최건영·임익화: 재배포 전후 동일 대화 보존 캡처
+- [ ] 실제 질문 → AI 응답 → DB 저장 → 본인 기록 조회
+- [ ] SQL 콘솔 실행 결과 캡처
+- [ ] 재배포 전후 동일 대화 보존 캡처
 
 ```bash
 python -m pytest -q
