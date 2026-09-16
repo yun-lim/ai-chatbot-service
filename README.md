@@ -193,7 +193,118 @@ production·preview 양쪽에 등록하고, 스테이징은 `.env.preview` 로 �
 ## 6. API 명세
 
 <!-- 담당 손재현 — 요청/응답 예시 포함 (평가항목 3) -->
-> 작성 예정
+## 6. API 명세
+
+인증이 필요한 엔드포인트는 **JWT(HttpOnly Cookie)** 를 검증한다. 인증 실패를 포함한 모든 오류 응답은 아래 공통 형식을 따른다.
+
+```json
+{
+  "error_code": "...",
+  "message": "..."
+}
+```
+
+전체 OpenAPI 스키마와 Swagger UI는 [`/docs`](https://b7-ai-chatbot.vercel.app/docs)에서 확인할 수 있다.
+
+### 엔드포인트
+
+| Method | Endpoint | 인증 | 설명 |
+|---|---|---|---|
+| `POST` | `/api/auth/register` | X | 회원가입 |
+| `POST` | `/api/auth/login` | X | 로그인 후 JWT(HttpOnly Cookie) 발급 |
+| `POST` | `/api/auth/logout` | O | 로그아웃(쿠키 만료) |
+| `GET` | `/api/me` | O | 내 정보 조회 |
+| `POST` | `/api/chat` | O | 최근 5턴 문맥을 포함해 AI 답변 생성 및 저장 |
+| `GET` | `/api/me/chats` | O | 내 대화 기록 조회 (`limit`, `offset` 지원) |
+| `GET` | `/healthz` | X | 배포 확인용 헬스체크 |
+
+### 대표 요청·응답 예시
+
+**회원가입**
+
+요청
+
+```json
+{
+  "username": "jaehyun123",
+  "password": "password123"
+}
+```
+
+응답 (`201 Created`)
+
+```json
+{
+  "id": 1,
+  "username": "jaehyun123"
+}
+```
+
+---
+
+**AI 채팅**
+
+요청
+
+```json
+{
+  "message": "TypeError: 'NoneType' object is not subscriptable"
+}
+```
+
+응답 (`200 OK`)
+
+```json
+{
+  "answer": "이 에러는 None 값에 인덱싱을 시도할 때 발생합니다...",
+  "chat_id": 42
+}
+```
+
+### 대화 기록 조회
+
+`GET /api/me/chats`
+
+| 쿼리 | 기본값 | 설명 |
+|---|---|---|
+| `limit` | `20` | 조회 개수 |
+| `offset` | `0` | 시작 위치 |
+
+성공·실패 기록을 모두 최신순으로 반환하며, 실패한 요청은 `status: "error"`와 `error_code`를 함께 제공한다.
+
+### 인증 흐름
+
+- `POST /api/auth/login` 성공 시 JWT를 HttpOnly Cookie로 발급한다.
+- 이후 인증이 필요한 요청은 브라우저가 쿠키를 자동 전송한다.
+- 서버는 쿠키의 JWT를 검증해 현재 사용자를 확인한다.
+- `POST /api/auth/logout`은 쿠키를 만료시켜 로그아웃한다.
+
+### AI 응답 생성 방식
+
+1. 로그인 사용자 확인
+2. 최근 성공 대화 5턴 조회
+3. 현재 질문과 함께 AI에 요청
+4. 성공·실패 결과를 모두 DB에 저장
+5. 응답과 `chat_id`를 반환한다.
+
+### 페이지 구성
+
+| 경로 | 설명 |
+|---|---|
+| `/` | 로그인 |
+| `/register` | 회원가입 |
+| `/chat` | AI 채팅 |
+| `/docs` | Swagger UI |
+
+### 주요 오류 코드
+
+| HTTP | `error_code` |
+|---|---|
+| `401` | `NOT_AUTHENTICATED`, `INVALID_CREDENTIALS` |
+| `409` | `DUPLICATE_USERNAME` |
+| `422` | `VALIDATION_ERROR` |
+| `503` | `AI_TIMEOUT`, `AI_ERROR`, `AI_UNKNOWN` |
+| `500` | `INTERNAL_ERROR` |
 
 ## 7. DB 구조
 
