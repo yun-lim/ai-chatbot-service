@@ -58,17 +58,9 @@
 | AI | 코디세이 OpenAI 호환 API(`copa.codyssey.kr/v1`) · `gpt-5.4-mini` · `openai` SDK | 타임아웃 10초, 타임아웃·API 오류는 1회 재시도. 모델명·문맥 5턴은 `config.py` 상수 |
 | 배포 | Vercel (GitHub Actions에서 CLI 배포) | |
 
-DB 는 **Neon Free** 를 쓴다. 유휴 상태에서 연결이 오면 자동 기동하고 pooled 엔드포인트를 제공해
-서버리스 함수와 맞는다 ([자동 기동](https://neon.com/docs/connect/connection-errors) ·
-[연결 풀링](https://neon.com/docs/connect/connection-pooling)). development·production 두 브랜치를
-스테이징·프로덕션에 각각 연결한다. [Free 한도](https://neon.com/pricing)는 프로젝트당 저장 0.5 GB ·
-컴퓨트 월 100 CU-hours 로, 이 과제 규모에는 충분하다.
-
 ## 3. 시스템 구조
 
 ![런타임 아키텍처](docs/architecture/architecture.png)
-<!-- 그림 원본은 docs/architecture/architecture.archify.json. 구조가 바뀌면 JSON 을 고쳐 architecture.html 을
-     다시 렌더링하고, 뷰어 UI 없이 다이어그램 SVG 만 PNG 로 뽑는다 (#114). -->
 
 초록 굵은 화살표가 질문 한 번의 호출 경로, 회색 화살표가 그 밖의 내부 호출과 함수 밖 경계
 (브라우저 · AI API · DB)에서 돌아오는 응답, 보라 점선이 배포다.
@@ -396,9 +388,6 @@ DeprecationWarning 1건이 있다. 이 결과는 실제 Neon·배포 환경 검�
 - [ ] 최건영·임익화: SQL 콘솔 실행 결과 캡처
 - [ ] 최건영·임익화: 재배포 전후 동일 대화 보존 캡처
 
-`/logs` 연결 확인은 2026-09-13 스테이징(Neon development 브랜치) 기준이다. production 브랜치는
-테이블 생성까지 확인했고 대화 데이터는 비어 있다.
-
 ```bash
 python -m pytest -q
 ```
@@ -520,15 +509,15 @@ ORM 객체 반환 방식으로 조회·저장 함수의 사용 방법을 맞췄�
 ### 임익화 — 앱 골격 · 화면 · 인프라 (`zxcv718`)
 
 - 담당 파일: `app/main.py` `config.py` `schemas.py` `logging_config.py` · `routers/pages.py` `templates/base·chat·logs` `static/` · `.github/` `vercel.json` `scripts/vercel-env-push.sh`
-- 작업 요약 (커밋 70 · 이슈 번호는 PR 과 1:1):
+- 작업 요약 (커밋 72 · 이슈 번호는 PR 과 1:1):
   - **앱 골격** — FastAPI 진입점, 요청/응답/오류 스키마와 `AppError`, 전역 예외 핸들러로 오류 응답 형식 통일 (#1 #24 #46), `request_id` 미들웨어와 로깅 설정 (#37)
   - **화면** — 디자인 토큰·템플릿·`chat.js` (#1), 화면 라우터 `pages.py` (#51 #75), 인증 연결과 로그아웃 (#68), `/logs` 데이터 연결과 KST 표시 (#91 #99), `/api/chat` 라우터 등록 (#94)
   - **인프라·CI** — Vercel 단일 함수 배포와 스테이징/프로덕션 분리, `autopr → ci → automerge → close-issue → deploy` 자동화 (#1 #26 #31 #61), 환경변수 등록 스크립트 (#57 #63), CI 더미 `DATABASE_URL` (#78), Neon 두 브랜치 테이블 생성·검증 (#89)
-  - **문서·규칙** — README 골격과 §2~§5·§9·§10 (#1 #55 #82 #101 #112), archify 아키텍처와 요청 시퀀스 (#96), `AGENTS.md`·`CONTRIBUTING`·이슈/PR 템플릿 (#28 #41 #53 #80)
+  - **문서·규칙** — README 골격과 §2~§5·§9·§10 (#1 #55 #82 #101 #112 #116), 아키텍처 그림과 요청 시퀀스 (#96 #114), `AGENTS.md`·`CONTRIBUTING`·이슈/PR 템플릿 (#28 #41 #53 #80)
 
 ## 10. 트러블슈팅
 
-<!-- 전원 — 막혔던 것과 해결 방법. 아래 4건은 임익화가 겪은 것, 각자 겪은 것을 이어서 추가한다. -->
+<!-- 전원 — 막혔던 것과 해결 방법. 각자 겪은 것을 이어서 추가한다. -->
 
 ### 배포는 초록불인데 화면이 404 — Vercel 의 작업 디렉터리 (#51)
 
