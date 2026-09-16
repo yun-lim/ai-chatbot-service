@@ -21,8 +21,8 @@
             {{ it.latency_ms }}ms
           </div>
           <div>
-            <p class="ask">{{ it.question }}</p>
-            <p class="answer{% if it.status == 'error' %} is-error{% endif %}">{{ it.answer }}</p>
+            <p class="ask bubble is-user">{{ it.question }}</p>
+            <p class="answer bubble is-bot{% if it.status == 'error' %} is-error{% endif %}">{{ it.answer }}</p>
             {% if it.status == 'error' %}
               <span class="badge is-error">{{ it.error_code }}</span>
             {% endif %}

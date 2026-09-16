@@ -6,6 +6,7 @@
 """
 
 import os
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import Mock
@@ -168,6 +169,60 @@ def test_시각은_KST_로_보인다(logged_in):
 
     assert "09/13 19:30" in html
     assert "09/13 10:30" not in html
+
+
+def test_기록_화면은_질문과_답변을_말풍선으로_구분한다(logged_in):
+    """질문은 내 말풍선(is-user), 답변은 봇 말풍선(is-bot). 오류 답변은 is-error 를 함께 단다.
+
+    CSS 가 이 클래스로 좌우 정렬과 배경을 가르므로, 이름은 chat.js 가 그리는 것과 같아야 한다.
+    """
+    crud.list_chat_logs.return_value = [
+        _chat_log(id=2, question="두 번째 질문", answer="두 번째 답"),
+        _chat_log(id=1, question="첫 질문", answer="", status="error", error_code="AI_TIMEOUT"),
+    ]
+
+    html = logged_in.get("/logs").text
+
+    assert html.count('class="ask bubble is-user"') == 2
+    assert 'class="answer bubble is-bot"' in html
+    assert 'class="answer bubble is-bot is-error"' in html
+
+
+def test_채팅_화면의_말풍선은_기록_화면과_같은_이름을_쓴다(client):
+    """chat.js 가 그리는 항목과 logs.html 이 그리는 항목이 같은 CSS 를 타야 두 화면이 같아 보인다."""
+    js = client.get("/static/chat.js").text
+
+    assert '"ask bubble is-user"' in js
+    assert '"answer bubble is-bot"' in js
+
+
+def test_말풍선은_좌우_정렬과_배경으로_갈린다(client):
+    """내 질문은 오른쪽·강조색 배경, 답변은 왼쪽·surface 배경. 토큰을 쓰므로 다크 테마도 같이 갈린다."""
+    css = client.get("/static/style.css").text
+
+    user = re.search(r"\.bubble\.is-user\s*\{[^}]*\}", css)
+    bot = re.search(r"\.bubble\.is-bot\s*\{[^}]*\}", css)
+    assert user and "flex-end" in user.group(0) and "var(--accent-soft)" in user.group(0)
+    assert bot and "flex-start" in bot.group(0) and "var(--surface)" in bot.group(0)
+
+
+def test_한글_조합_중_Enter는_전송하지_않는다(client):
+    """IME 가 마지막 글자를 조합하는 중의 Enter(isComposing)는 조합 확정이지 전송이 아니다.
+
+    이때 보내면 조합 중이던 글자가 빈 입력창에 다시 들어가 한 글자짜리 질문이 한 번 더 나간다.
+    """
+    js = client.get("/static/chat.js").text
+    keydown = js[js.index('addEventListener("keydown"') : js.index('addEventListener("submit"')]
+
+    assert "isComposing" in keydown
+
+
+def test_응답을_기다리는_동안은_다시_전송하지_않는다(client):
+    """보내기 버튼만 비활성화하면 Enter(requestSubmit)로는 여전히 보낼 수 있다. submit 자체가 막아야 한다."""
+    js = client.get("/static/chat.js").text
+    submit = js[js.index('addEventListener("submit"') : js.index("var slot = addEntry(question)")]
+
+    assert "send.disabled" in submit
 
 
 def test_비로그인_기록_API는_JSON_401(client):
