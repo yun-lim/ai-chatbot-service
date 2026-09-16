@@ -352,12 +352,15 @@ ORM 객체 반환 방식으로 조회·저장 함수의 사용 방법을 맞췄�
 
 ### 페이지 구성
 
-| 경로 | 설명 |
-|---|---|
-| `/` | 로그인 |
-| `/register` | 회원가입 |
-| `/chat` | AI 채팅 |
-| `/docs` | Swagger UI |
+| 경로          | 설명              |
+| ----------- | --------------- |
+| `/`         | `/chat`으로 리다이렉트 |
+| `/login`    | 로그인             |
+| `/register` | 회원가입            |
+| `/chat`     | AI 채팅           |
+| `/logs`     | 대화 기록           |
+| `/docs`     | Swagger UI      |
+
 
 ### 주요 오류 코드
 
@@ -366,7 +369,7 @@ ORM 객체 반환 방식으로 조회·저장 함수의 사용 방법을 맞췄�
 | `401` | `NOT_AUTHENTICATED`, `INVALID_CREDENTIALS` |
 | `409` | `DUPLICATE_USERNAME` |
 | `422` | `VALIDATION_ERROR` |
-| `503` | `AI_TIMEOUT`, `AI_ERROR`, `AI_UNKNOWN` |
+| `503` | `AI_TIMEOUT`, `AI_ERROR`, `AI_UNKNOWN`, `RATE_LIMITED` |
 | `500` | `INTERNAL_ERROR` |
 
 ## 6. DB 구조
