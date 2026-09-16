@@ -67,7 +67,14 @@
 
   function settle(slot, text, isError, ms) {
     slot.entry.classList.remove("is-pending");
-    slot.answer.textContent = text;
+    if (isError) {
+      // 오류 문구는 서버가 정한 평문이다. 서식으로 해석하지 않는다.
+      slot.answer.textContent = text;
+    } else {
+      // 답변은 마크다운으로 온다. markdown.js 가 전부 이스케이프한 뒤 자기 태그만 만든다 (#142).
+      slot.answer.innerHTML = renderMarkdown(text);
+      slot.answer.classList.add("md");
+    }
     slot.answer.classList.toggle("is-error", isError);
     if (typeof ms === "number") {
       slot.meta.appendChild(document.createTextNode(ms + "ms"));
