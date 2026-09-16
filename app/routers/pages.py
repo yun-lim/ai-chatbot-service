@@ -35,6 +35,9 @@ templates.env.filters["kst"] = _kst
 # HTML 라우트가 섞이면 읽어야 할 것이 묻힌다.
 router = APIRouter(tags=["pages"], include_in_schema=False)
 
+# /chat 에 미리 그리는 지난 대화 수. 서버 문맥(최근 5턴)보다 넉넉히 보여 주되 화면을 끝없이 키우진 않는다.
+CHAT_HISTORY_LIMIT = 50
+
 
 @router.get("/")
 def index() -> RedirectResponse:
@@ -55,9 +58,13 @@ def register_page(request: Request):
 
 
 @router.get("/chat")
-def chat_page(request: Request, user: CurrentUser):
-    """질문 화면. 로그인한 사용자만."""
-    return templates.TemplateResponse(request, "chat.html", {"user": user})
+def chat_page(request: Request, user: CurrentUser, db: DbSession):
+    """질문 화면. 로그인한 사용자만. 지난 대화를 미리 그려 새로고침해도 대화가 이어진다 (#145)."""
+    # crud 는 최신순으로 준다. 화면은 대화처럼 오래된 것부터 아래로 쌓는다.
+    items = list(reversed(crud.list_chat_logs(db, user.id, limit=CHAT_HISTORY_LIMIT)))
+    return templates.TemplateResponse(
+        request, "chat.html", {"user": user, "items": items}
+    )
 
 
 @router.get("/logs")
