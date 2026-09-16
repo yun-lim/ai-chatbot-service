@@ -222,7 +222,8 @@
       "variant": "emphasis",
       "fromSide": "bottom",
       "toSide": "top",
-      "labelDy": 24
+      "labelDy": 24,
+      "labelDx": 30
     },
     {
       "id": "routers-deps",
@@ -257,7 +258,37 @@
       "variant": "emphasis",
       "fromSide": "bottom",
       "toSide": "top",
+      "labelDy": 24,
+      "labelDx": -42
+    },
+    {
+      "id": "main-browser-return",
+      "from": "main",
+      "to": "browser",
+      "label": "응답",
+      "fromSide": "left",
+      "toSide": "right",
       "labelDy": 24
+    },
+    {
+      "id": "api-client-return",
+      "from": "ai-api",
+      "to": "ai-client",
+      "label": "답변 · 오류",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelDy": -24,
+      "labelDx": -45
+    },
+    {
+      "id": "neon-crud-return",
+      "from": "neon",
+      "to": "crud",
+      "label": "조회 결과",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelDy": -24,
+      "labelDx": 42
     },
     {
       "id": "github-main",

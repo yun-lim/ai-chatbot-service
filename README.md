@@ -58,24 +58,20 @@
 | AI | 코디세이 OpenAI 호환 API(`copa.codyssey.kr/v1`) · `gpt-5.4-mini` · `openai` SDK | 타임아웃 10초, 타임아웃·API 오류는 1회 재시도. 모델명·문맥 5턴은 `config.py` 상수 |
 | 배포 | Vercel (GitHub Actions에서 CLI 배포) | |
 
-DB 제공자는 **Neon Free**로 확정하고 두 브랜치의 pooled 연결 문자열을 임익화에게 비공개 전달했다.
-유휴 상태에서 연결 시 자동 기동하고, pooled 엔드포인트를 제공하므로 이 서비스에 선택했다.
-근거: [연결·자동 기동 안내](https://neon.com/docs/connect/connection-errors),
-[연결 풀링 안내](https://neon.com/docs/connect/connection-pooling).
-
-2026-09-12 확인한 [공식 Free 요금표](https://neon.com/pricing): 프로젝트당 저장 공간 0.5 GB,
-컴퓨트 월 100 CU-hours, 복원 이력은 최대 6시간 또는 변경 데이터 1 GB 한도다.
-복원 이력 창은 대화 행의 자동 삭제 주기가 아니다. 요금·한도는 변할 수 있으므로 시연 전 임익화가
-콘솔의 실제 플랜·사용량과 development 브랜치의 자동 삭제 설정을 다시 확인한다.
+DB 는 **Neon Free** 를 쓴다. 유휴 상태에서 연결이 오면 자동 기동하고 pooled 엔드포인트를 제공해
+서버리스 함수와 맞는다 ([자동 기동](https://neon.com/docs/connect/connection-errors) ·
+[연결 풀링](https://neon.com/docs/connect/connection-pooling)). development·production 두 브랜치를
+스테이징·프로덕션에 각각 연결한다. [Free 한도](https://neon.com/pricing)는 프로젝트당 저장 0.5 GB ·
+컴퓨트 월 100 CU-hours 로, 이 과제 규모에는 충분하다.
 
 ## 3. 시스템 구조
 
 ![런타임 아키텍처](docs/architecture/architecture.png)
+<!-- 그림 원본은 docs/architecture/architecture.archify.json. 구조가 바뀌면 JSON 을 고쳐 architecture.html 을
+     다시 렌더링하고, 뷰어 UI 없이 다이어그램 SVG 만 PNG 로 뽑는다 (#114). -->
 
-> 위 그림은 [archify](https://github.com/tt-a1i/archify) 로 코드에서 그린 것이다. 원본 명세는
-> [`docs/architecture/architecture.archify.json`](docs/architecture/architecture.archify.json),
-> 상호작용 버전(경로 추적·검색·PNG/SVG 내보내기)은 [`docs/architecture/architecture.html`](docs/architecture/architecture.html) 을
-> 브라우저로 열면 된다. 구조가 바뀌면 JSON 을 고치고 `archify deliver` 로 다시 뽑는다.
+초록 굵은 화살표가 질문 한 번의 호출 경로, 회색 화살표가 그 밖의 내부 호출과 함수 밖 경계
+(브라우저 · AI API · DB)에서 돌아오는 응답, 보라 점선이 배포다.
 
 앱 전체가 **Vercel 서버리스 함수 하나**다. 브라우저의 요청은 `main.py` 의 request_id 미들웨어를 지나
 라우터로 가고, 인증(`deps.py`)·쿼리(`crud.py`)·AI 호출(`ai_client.py`)은 각각 한 곳에서만 일어난다.
@@ -187,8 +183,7 @@ production·preview 양쪽에 등록하고, 스테이징은 `.env.preview` 로 �
 그 셋에 해당하지 않는 값(모델명·문맥 턴 수·엔드포인트 URL)은 `app/config.py` 상수다 —
 환경변수 하나는 스테이징에 빠뜨릴 수 있는 곳 하나다.
 
-배포 환경의 값은 **Vercel 대시보드 환경변수**에만 저장한다. Hobby 플랜이라 접근이
-계정 소유자로 제한되므로 변경이 필요하면 임익화에게 요청한다.
+배포 환경의 값은 **Vercel 프로젝트 환경변수**에만 저장한다 (등록 방법은 4절).
 
 ## 6. API 명세
 
@@ -557,7 +552,7 @@ ORM 객체 반환 방식으로 조회·저장 함수의 사용 방법을 맞췄�
 
 - **증상**: 배포 성공·헬스체크 200·DB 연결 성공. 그런데 `/api/auth/register` 가 500.
 - **원인**: `create_engine` 은 연결만 확인하고 테이블 존재는 첫 쿼리에서야 드러난다. Neon 두 브랜치(development·production) 모두 `users`·`chat_logs` 가 없었다. 앱은 서버리스라 시작 훅에서 `create_all()` 을 돌리지 않는다.
-- **해결**: `scripts/create_tables.py` 를 각 브랜치에 1회 실행(연결 문자열은 임익화만 가짐). 끝에서 끝까지 실제 요청을 한 번 흘려보는 것만이 이런 "초록불 함정"을 잡는다 — 그래서 §8 의 확인 절차가 있다.
+- **해결**: `scripts/create_tables.py` 를 각 브랜치에 1회 실행. 끝에서 끝까지 실제 요청을 한 번 흘려보는 것만이 이런 "초록불 함정"을 잡는다 — 그래서 §8 의 확인 절차가 있다.
 
 ### 인증 API를 구현했는데 실제 주소에서는 404가 나온 경우 (#67 · #68)
 

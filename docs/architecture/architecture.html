@@ -5159,16 +5159,19 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 
         <!-- Connection paths (before components for correct z-order) -->
-        <path data-edge-from="browser" data-edge-to="main" data-edge-label="HTTPS · JSON" data-edge-key="0" data-edge-id="browser-main" data-composition-points="170,145;240,145" d="M 170 145 L 240 145" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="browser" data-edge-to="main" data-edge-label="HTTPS · JSON" data-edge-key="0" data-edge-id="browser-main" data-composition-points="170,138;240,138" d="M 170 138 L 240 138" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         <path data-edge-from="main" data-edge-to="routers" data-edge-label="라우팅" data-edge-key="1" data-edge-id="main-routers" data-composition-points="400,145;460,145" d="M 400 145 L 460 145" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         <path data-edge-from="routers" data-edge-to="chat-service" data-edge-label="POST /api/chat" data-edge-key="2" data-edge-id="routers-service" data-composition-points="610,145;680,145" d="M 610 145 L 680 145" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         <path data-edge-from="chat-service" data-edge-to="ai-client" data-edge-label="messages" data-edge-key="3" data-edge-id="service-client" data-composition-points="840,145;920,145" d="M 840 145 L 920 145" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="ai-client" data-edge-to="ai-api" data-edge-label="HTTP" data-edge-key="4" data-edge-id="client-api" data-composition-points="1000,180;1000,300" d="M 1000 180 L 1000 300" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="ai-client" data-edge-to="ai-api" data-edge-label="HTTP" data-edge-key="4" data-edge-id="client-api" data-composition-points="1007,180;1007,300" d="M 1007 180 L 1007 300" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         <path data-edge-from="routers" data-edge-to="deps" data-edge-label="쿠키 검증" data-edge-key="5" data-edge-id="routers-deps" data-composition-points="535,180;535,300" d="M 535 180 L 535 300" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <path data-edge-from="deps" data-edge-to="crud" data-edge-label="get_user_by_id" data-edge-key="6" data-edge-id="deps-crud" data-composition-points="610,335;680,335" d="M 610 335 L 680 335" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <path data-edge-from="chat-service" data-edge-to="crud" data-edge-label="recent_turns · create_chat_log" data-edge-key="7" data-edge-id="service-crud" data-composition-points="760,180;760,300" d="M 760 180 L 760 300" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="crud" data-edge-to="neon" data-edge-label="SQLAlchemy" data-edge-key="8" data-edge-id="crud-neon" data-composition-points="760,370;760,490" d="M 760 370 L 760 490" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="github" data-edge-to="main" data-edge-label="Vercel 배포" data-edge-key="9" data-edge-id="github-main" data-composition-points="320,300;320,180" d="M 320 300 L 320 180" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path data-edge-from="crud" data-edge-to="neon" data-edge-label="SQLAlchemy" data-edge-key="8" data-edge-id="crud-neon" data-composition-points="753,370;753,490" d="M 753 370 L 753 490" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="main" data-edge-to="browser" data-edge-label="응답" data-edge-key="9" data-edge-id="main-browser-return" data-composition-points="240,152;170,152" d="M 240 152 L 170 152" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="ai-api" data-edge-to="ai-client" data-edge-label="답변 · 오류" data-edge-key="10" data-edge-id="api-client-return" data-composition-points="993,300;993,180" d="M 993 300 L 993 180" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="neon" data-edge-to="crud" data-edge-label="조회 결과" data-edge-key="11" data-edge-id="neon-crud-return" data-composition-points="767,490;767,370" d="M 767 490 L 767 370" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="github" data-edge-to="main" data-edge-label="Vercel 배포" data-edge-key="12" data-edge-id="github-main" data-composition-points="320,300;320,180" d="M 320 300 L 320 180" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
 
         <!-- Components -->
         <g id="node-browser" data-node-id="browser" data-node-label="브라우저" tabindex="0" role="button" aria-label="Focus 브라우저, Jinja2 템플릿 + chat.js, Architecture component" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="Jinja2 템플릿 + chat.js" data-node-context="Architecture component">
@@ -5300,8 +5303,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
         <!-- Connection labels -->
         <g data-detail="context" data-edge-from="browser" data-edge-to="main" data-edge-label="HTTPS · JSON" data-edge-key="0" data-edge-id="browser-main">
-          <rect x="171.2" y="97" width="67.6" height="14" rx="3" class="c-mask"/>
-          <text x="205" y="107" class="t-backend" font-size="8" text-anchor="middle">HTTPS · JSON</text>
+          <rect x="171.2" y="90" width="67.6" height="14" rx="3" class="c-mask"/>
+          <text x="205" y="100" class="t-backend" font-size="8" text-anchor="middle">HTTPS · JSON</text>
         </g>
         <g data-detail="context" data-edge-from="main" data-edge-to="routers" data-edge-label="라우팅" data-edge-key="1" data-edge-id="main-routers">
           <rect x="410.6" y="97" width="38.8" height="14" rx="3" class="c-mask"/>
@@ -5316,8 +5319,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <text x="880" y="107" class="t-backend" font-size="8" text-anchor="middle">messages</text>
         </g>
         <g data-detail="context" data-edge-from="ai-client" data-edge-to="ai-api" data-edge-label="HTTP" data-edge-key="4" data-edge-id="client-api">
-          <rect x="985" y="184" width="30" height="14" rx="3" class="c-mask"/>
-          <text x="1000" y="194" class="t-backend" font-size="8" text-anchor="middle">HTTP</text>
+          <rect x="1022" y="184" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="1037" y="194" class="t-backend" font-size="8" text-anchor="middle">HTTP</text>
         </g>
         <g data-detail="context" data-edge-from="routers" data-edge-to="deps" data-edge-label="쿠키 검증" data-edge-key="5" data-edge-id="routers-deps">
           <rect x="508.4" y="184" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
@@ -5332,10 +5335,22 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <text x="760" y="194" class="t-muted" font-size="8" text-anchor="middle">recent_turns · create_chat_log</text>
         </g>
         <g data-detail="context" data-edge-from="crud" data-edge-to="neon" data-edge-label="SQLAlchemy" data-edge-key="8" data-edge-id="crud-neon">
-          <rect x="731" y="374" width="58" height="14" rx="3" class="c-mask"/>
-          <text x="760" y="384" class="t-backend" font-size="8" text-anchor="middle">SQLAlchemy</text>
+          <rect x="682" y="374" width="58" height="14" rx="3" class="c-mask"/>
+          <text x="711" y="384" class="t-backend" font-size="8" text-anchor="middle">SQLAlchemy</text>
         </g>
-        <g data-detail="context" data-edge-from="github" data-edge-to="main" data-edge-label="Vercel 배포" data-edge-key="9" data-edge-id="github-main">
+        <g data-detail="context" data-edge-from="main" data-edge-to="browser" data-edge-label="응답" data-edge-key="9" data-edge-id="main-browser-return">
+          <rect x="190" y="156" width="30" height="14" rx="3" class="c-mask"/>
+          <text x="205" y="166" class="t-muted" font-size="8" text-anchor="middle">응답</text>
+        </g>
+        <g data-detail="context" data-edge-from="ai-api" data-edge-to="ai-client" data-edge-label="답변 · 오류" data-edge-key="10" data-edge-id="api-client-return">
+          <rect x="916.6" y="256" width="62.8" height="14" rx="3" class="c-mask"/>
+          <text x="948" y="266" class="t-muted" font-size="8" text-anchor="middle">답변 · 오류</text>
+        </g>
+        <g data-detail="context" data-edge-from="neon" data-edge-to="crud" data-edge-label="조회 결과" data-edge-key="11" data-edge-id="neon-crud-return">
+          <rect x="782.4" y="446" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
+          <text x="809" y="456" class="t-muted" font-size="8" text-anchor="middle">조회 결과</text>
+        </g>
+        <g data-detail="context" data-edge-from="github" data-edge-to="main" data-edge-label="Vercel 배포" data-edge-key="12" data-edge-id="github-main">
           <rect x="288.6" y="280" width="62.8" height="14" rx="3" class="c-mask"/>
           <text x="320" y="290" class="t-messagebus" font-size="8" text-anchor="middle">Vercel 배포</text>
         </g>
