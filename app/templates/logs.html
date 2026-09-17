@@ -18,6 +18,13 @@
         {% include "_entry.html" %}
       {% endfor %}
     </div>
+    {% if has_more %}
+      {# 조용히 잘라내지 않는다 — "여기 없음"이 "기록 없음"으로 읽히면 안 된다 (#162) #}
+      <p class="page-note" id="logs-more">
+        최근 {{ logs_limit }}건만 보여 줍니다. 더 오래된 기록은
+        <a href="/chat">질문 화면</a>에서 위로 스크롤하면 이어서 볼 수 있습니다.
+      </p>
+    {% endif %}
   {% endif %}
 {% endblock %}
 
