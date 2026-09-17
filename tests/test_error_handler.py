@@ -90,6 +90,43 @@ def test_없는_경로도_같은_형식으로_나간다():
     assert "error_code" in res.json()
 
 
+# ── 없는 주소 · 잘못된 메서드 (#159) ────────────────────────────
+# 404 는 가장 예상된 오류다. "예상 못한 예외"용 INTERNAL_ERROR 와 프레임워크의 영어 문구로 나가면 안 된다.
+
+
+def test_없는_API_경로는_NOT_FOUND_와_우리_문구로_나간다():
+    res = client.get("/api/_t/nope")
+    assert res.status_code == 404
+    assert res.json() == {
+        "error_code": "NOT_FOUND",
+        "message": ERROR_MESSAGES[ErrorCode.NOT_FOUND],
+    }
+
+
+def test_잘못된_메서드는_METHOD_NOT_ALLOWED_로_나간다():
+    res = client.get("/api/_t/validate")  # POST 전용 라우트
+    assert res.status_code == 405
+    assert res.json() == {
+        "error_code": "METHOD_NOT_ALLOWED",
+        "message": ERROR_MESSAGES[ErrorCode.METHOD_NOT_ALLOWED],
+    }
+
+
+def test_화면의_없는_주소는_JSON_이_아니라_안내_화면이다():
+    res = client.get("/chatt")
+    assert res.status_code == 404
+    assert "text/html" in res.headers["content-type"]
+    assert ERROR_MESSAGES[ErrorCode.NOT_FOUND] in res.text
+    assert 'href="/chat"' in res.text
+
+
+def test_없는_정적파일은_화면이_아니라_JSON_이다():
+    # 브라우저가 <script>·<link> 로 받는 자리에 HTML 을 주지 않는다.
+    res = client.get("/static/nope.js")
+    assert res.status_code == 404
+    assert res.json()["error_code"] == "NOT_FOUND"
+
+
 @pytest.mark.parametrize("code", list(ErrorCode))
 def test_문구가_비어있지_않다(code):
     assert ERROR_MESSAGES[code].strip()

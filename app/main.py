@@ -96,13 +96,29 @@ def _error(code: ErrorCode, message: str | None = None, status: int | None = Non
 # 새 코드는 AppError 를 쓰는 편이 낫다 — 상태코드를 직접 고르지 않아도 된다.
 _STATUS_TO_CODE = {
     401: ErrorCode.NOT_AUTHENTICATED,
+    404: ErrorCode.NOT_FOUND,
+    405: ErrorCode.METHOD_NOT_ALLOWED,
     409: ErrorCode.DUPLICATE_USERNAME,
     422: ErrorCode.VALIDATION_ERROR,
 }
 
+# 사람이 주소창에서 마주치는 오류. 화면 요청이면 JSON 이 아니라 안내 화면으로 낸다 (#159).
+_PAGE_ERRORS = {ErrorCode.NOT_FOUND, ErrorCode.METHOD_NOT_ALLOWED}
+
 
 def _login_redirect() -> RedirectResponse:
     return RedirectResponse("/login", status_code=302)
+
+
+def _error_page(request: Request, code: ErrorCode):
+    """화면용 오류 안내. 문구는 API 와 같은 출처(ERROR_MESSAGES)를 쓴다."""
+    status = ERROR_STATUS[code]
+    return pages.templates.TemplateResponse(
+        request,
+        "error.html",
+        {"status": status, "message": ERROR_MESSAGES[code]},
+        status_code=status,
+    )
 
 
 @app.exception_handler(RequestValidationError)
@@ -126,9 +142,13 @@ async def handle_http_exception(request: Request, exc: StarletteHTTPException):
     if exc.status_code == 401 and _wants_html(request):
         return _login_redirect()
     if code is not None:
+        # 없는 정적 파일은 <script>·<link> 가 받는 자리라 화면이 아니라 JSON 으로 둔다.
+        is_static = request.url.path.startswith("/static/")
+        if code in _PAGE_ERRORS and _wants_html(request) and not is_static:
+            return _error_page(request, code)
         return _error(code)
 
-    # 404 처럼 매핑이 없는 상태는 상태코드를 유지하고 형식만 맞춘다.
+    # 매핑이 없는 드문 상태는 상태코드를 유지하고 형식만 맞춘다.
     return _error(ErrorCode.INTERNAL_ERROR, str(exc.detail), status=exc.status_code)
 
 

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ status }} · 코딩 학습 Q&A{% endblock %}
+
+{# 주소를 잘못 친 사람이 보는 화면 (#159). 문구는 API 오류와 같은 출처(schemas.ERROR_MESSAGES)다.
+   로그인 여부를 모르는 자리라 nav 는 비워 둔다 — /chat 이 알아서 /login 으로 보낸다. #}
+{% block content %}
+  <h1 class="page-title">{{ message }}</h1>
+  <p class="page-note">주소를 다시 확인해 주세요. (오류 {{ status }})</p>
+  <p><a class="btn" href="/chat">질문 화면으로</a></p>
+{% endblock %}

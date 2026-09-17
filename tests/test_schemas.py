@@ -36,6 +36,7 @@ def test_회원가입_제약():
 def test_오류코드_집합이_계약대로다():
     # 개수만 세면 코드를 바꿔치기해도 통과한다. 집합을 그대로 비교한다.
     # 앞 8종은 계획서 7장 표, INTERNAL_ERROR 는 예상 못한 예외용으로 D가 추가했다.
+    # NOT_FOUND · METHOD_NOT_ALLOWED 는 없는 주소·잘못된 메서드용이다 (#159).
     assert {c.value for c in ErrorCode} == {
         "VALIDATION_ERROR",
         "NOT_AUTHENTICATED",
@@ -46,6 +47,8 @@ def test_오류코드_집합이_계약대로다():
         "AI_ERROR",
         "AI_UNKNOWN",
         "INTERNAL_ERROR",
+        "NOT_FOUND",
+        "METHOD_NOT_ALLOWED",
     }
 
 
