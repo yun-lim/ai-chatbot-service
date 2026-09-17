@@ -28,6 +28,10 @@ def _get_client() -> AsyncOpenAI:
             api_key=os.environ["AI_API_KEY"],
             base_url=AI_BASE_URL,
             timeout=float(os.environ.get("AI_TIMEOUT_SECONDS", "10")),
+            # SDK 의 기본값은 2다. 끄지 않으면 아래 MAX_RETRIES 와 곱해져 질문 한 번에 HTTP 시도가
+            # 6회 나가고, 최악 약 63초로 Vercel maxDuration(60초)을 넘는다 — 그러면 AI_TIMEOUT 안내도
+            # 실패 행도 남기지 못하고 함수가 끊긴다. 재시도 정책은 generate() 한 곳에만 둔다 (#154).
+            max_retries=0,
         )
     return _client
 
@@ -48,7 +52,6 @@ async def generate(messages: list[dict]) -> str:
                 messages=full_messages,
                 max_tokens=AI_MAX_OUTPUT_TOKENS,
             )
-            return response.choices[0].message.content
 
         except openai.APITimeoutError:
             logger.warning("ai_call_timeout attempt=%d", attempt)
@@ -69,3 +72,12 @@ async def generate(messages: list[dict]) -> str:
         except Exception:
             logger.exception("ai_call_unknown_error attempt=%d", attempt)
             raise AppError(ErrorCode.AI_UNKNOWN)
+
+        else:
+            # 호환 API 는 본문 없이 응답할 수 있다. 그대로 돌려주면 None 이 chat_logs.answer(NOT NULL)로
+            # 흘러 DB 오류 → 500 이 된다. AI 쪽 문제이므로 AI 오류로 안내한다 (#154).
+            content = response.choices[0].message.content
+            if not content:
+                logger.warning("ai_call_empty_response attempt=%d", attempt)
+                raise AppError(ErrorCode.AI_ERROR)
+            return content
