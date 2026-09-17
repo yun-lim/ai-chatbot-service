@@ -35,6 +35,11 @@ class ErrorCode(StrEnum):
     # AI_UNKNOWN(503)을 재사용하면 DB 오류를 AI 문제로 잘못 알리게 된다.
     INTERNAL_ERROR = "INTERNAL_ERROR"            # 500
 
+    # 없는 주소와 잘못된 메서드. 가장 "예상한" 오류인데 매핑이 없어 INTERNAL_ERROR 와
+    # 프레임워크의 영어 문구("Not Found")로 나가고 있었다 (#159).
+    NOT_FOUND = "NOT_FOUND"                      # 404
+    METHOD_NOT_ALLOWED = "METHOD_NOT_ALLOWED"    # 405
+
 
 # 코드별 HTTP 상태. 라우터가 상태코드를 직접 고르지 않고 여기를 따른다.
 ERROR_STATUS: dict[ErrorCode, int] = {
@@ -47,6 +52,8 @@ ERROR_STATUS: dict[ErrorCode, int] = {
     ErrorCode.AI_ERROR: 503,
     ErrorCode.AI_UNKNOWN: 503,
     ErrorCode.INTERNAL_ERROR: 500,
+    ErrorCode.NOT_FOUND: 404,
+    ErrorCode.METHOD_NOT_ALLOWED: 405,
 }
 
 # 사용자에게 보이는 확정 문구. B가 코드를 던지고 D가 화면에 그리므로
@@ -61,6 +68,8 @@ ERROR_MESSAGES: dict[ErrorCode, str] = {
     ErrorCode.AI_ERROR: "AI 응답 생성에 실패했어요. 잠시 후 다시 시도해 주세요.",
     ErrorCode.AI_UNKNOWN: "알 수 없는 오류가 발생했어요. 잠시 후 다시 시도해 주세요.",
     ErrorCode.INTERNAL_ERROR: "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.",
+    ErrorCode.NOT_FOUND: "요청한 주소를 찾을 수 없습니다.",
+    ErrorCode.METHOD_NOT_ALLOWED: "허용되지 않는 요청 방식입니다.",
 }
 
 
@@ -113,7 +122,7 @@ class UserResponse(BaseModel):
 class ChatRequest(BaseModel):
     """길이 상한을 두지 않는다.
 
-    명세 L90·L211 은 "입력 검증 로직 최소 1개"만 요구하고 길이 제한은 예시 중 하나다.
+    명세 L90·L205 는 "입력 검증 로직 최소 1개"만 요구하고 길이 제한은 예시 중 하나다.
     빈 입력·공백만 차단 2겹으로 평가항목 16 은 충족된다.
     코딩 학습 챗봇이라 사용자가 코드를 통째로 붙여넣는 것이 주 사용례이므로,
     근거 없는 숫자로 그걸 막지 않는다.
