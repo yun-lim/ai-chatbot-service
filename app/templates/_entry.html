@@ -1,14 +1,17 @@
 {# 질문–답변 한 쌍. chat.html(지난 대화 미리 그리기)과 logs.html 이 함께 쓴다.
-   클래스 이름은 static/chat.js 의 addEntry 가 만드는 항목과 같아야 두 경로가 같은 CSS 를 탄다. #}
+   클래스 이름과 구조는 static/chat.js 의 addEntry·buildEntry 가 만드는 항목과 같아야 두 경로가 같은 CSS 를 탄다. #}
 <article class="entry">
-  <div class="entry-meta">
-    <b>{{ it.created_at | kst }}</b>
-    {# 응답 시간은 운영 추적값 — 확인용 화면(/logs)에서만 보인다 (#151) #}
-    {% if show_latency %}{{ it.latency_ms }}ms{% endif %}
-  </div>
   <div>
     <p class="ask bubble is-user">{{ it.question }}</p>
-    <p class="answer bubble is-bot{% if it.status == 'error' %} is-error{% endif %}">{{ it.answer }}</p>
+    {# 시각은 답변 말풍선의 오른쪽 아래에 붙인다 — 항목 끝에 따로 두면 어느 말풍선의 시각인지 애매하다 (#169) #}
+    <div class="answer-row">
+      <p class="answer bubble is-bot{% if it.status == 'error' %} is-error{% endif %}">{{ it.answer }}</p>
+      <div class="entry-meta">
+        <b>{{ it.created_at | kst }}</b>
+        {# 응답 시간은 운영 추적값 — 확인용 화면(/logs)에서만 보인다 (#151) #}
+        {% if show_latency %}<span>{{ it.latency_ms }}ms</span>{% endif %}
+      </div>
+    </div>
     {% if it.status == 'error' %}
       <span class="badge is-error">{{ it.error_code }}</span>
     {% endif %}

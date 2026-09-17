@@ -343,6 +343,46 @@ def test_말풍선은_좌우_정렬과_배경으로_갈린다(client):
     assert bot and "flex-start" in bot.group(0) and "var(--surface)" in bot.group(0)
 
 
+# ── 답변 시각은 말풍선 오른쪽 아래에 (#169) ─────────────────────
+# 메타가 항목 맨 아래·전체 폭의 오른쪽 끝에 있으면 왼쪽의 답변 말풍선과 떨어져 어느 말풍선의
+# 시각인지 애매하다. 답변과 시각을 한 줄로 묶고 아래 끝을 맞춘다.
+
+_ANSWER_ROW = re.compile(
+    r'<div class="answer-row">\s*'
+    r'<p class="answer bubble is-bot[^"]*">.*?</p>\s*'
+    r'<div class="entry-meta">',
+    re.DOTALL,
+)
+
+
+@pytest.mark.parametrize("path", ["/chat", "/logs"])
+def test_시각은_답변_말풍선과_같은_줄에_바로_뒤에_온다(logged_in, path):
+    crud.list_chat_logs.return_value = [_chat_log()]
+
+    html = logged_in.get(path).text
+
+    assert _ANSWER_ROW.search(html)
+
+
+def test_chat_js_가_만드는_항목도_같은_구조다(client):
+    """실시간 항목(addEntry)과 더 불러온 항목(buildEntry) 둘 다 answer-row 에 답변 → 시각 순으로 넣는다."""
+    js = client.get("/static/chat.js").text
+
+    assert js.count('row.className = "answer-row"') == 2
+    assert js.count("row.appendChild(answer);\n    row.appendChild(meta);") == 2
+    # 메타를 항목 맨 앞에 따로 붙이던 옛 구조가 남아 있으면 안 된다.
+    assert "entry.appendChild(meta)" not in js
+
+
+def test_답변_줄은_시각의_아래_끝을_말풍선에_맞춘다(client):
+    css = client.get("/static/style.css").text
+
+    row = re.search(r"\.answer-row\s*\{[^}]*\}", css)
+    assert row and "display: flex" in row.group(0) and "align-items: flex-end" in row.group(0)
+    meta = re.search(r"\.entry-meta\s*\{[^}]*\}", css)
+    assert meta and "order:" not in meta.group(0) and "text-align: right" not in meta.group(0)
+
+
 def test_한글_조합_중_Enter는_전송하지_않는다(client):
     """IME 가 마지막 글자를 조합하는 중의 Enter(isComposing)는 조합 확정이지 전송이 아니다.
 

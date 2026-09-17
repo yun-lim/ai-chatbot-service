@@ -47,17 +47,21 @@
     meta.appendChild(time);
 
     var body = document.createElement("div");
-    // 클래스 이름은 templates/logs.html 과 같아야 두 화면이 같은 CSS 를 탄다.
+    // 클래스 이름과 구조는 templates/_entry.html 과 같아야 두 화면이 같은 CSS 를 탄다.
     var ask = document.createElement("p");
     ask.className = "ask bubble is-user";
     ask.textContent = question;
     var answer = document.createElement("p");
     answer.className = "answer bubble is-bot";
     answer.textContent = "답변을 만들고 있습니다…";
+    // 시각은 답변 말풍선의 오른쪽 아래에 붙인다 (#169).
+    var row = document.createElement("div");
+    row.className = "answer-row";
+    row.appendChild(answer);
+    row.appendChild(meta);
     body.appendChild(ask);
-    body.appendChild(answer);
+    body.appendChild(row);
 
-    entry.appendChild(meta);
     entry.appendChild(body);
     log.appendChild(entry);
     entry.scrollIntoView({ block: "end" });
@@ -136,8 +140,12 @@
       answer.innerHTML = renderMarkdown(item.answer);
       answer.classList.add("md");
     }
+    var row = document.createElement("div");
+    row.className = "answer-row";
+    row.appendChild(answer);
+    row.appendChild(meta);
     body.appendChild(ask);
-    body.appendChild(answer);
+    body.appendChild(row);
     if (item.status === "error") {
       var badge = document.createElement("span");
       badge.className = "badge is-error";
@@ -145,7 +153,6 @@
       body.appendChild(badge);
     }
 
-    entry.appendChild(meta);
     entry.appendChild(body);
     return entry;
   }

@@ -212,33 +212,49 @@ main {
 }
 .history-top:empty { margin-bottom: -1.25rem; }
 
-/* 항목 = 말풍선 둘 + 메타 한 줄. 마크업은 메타가 먼저지만 화면에선 아래로 보낸다. */
+/* 항목 = 질문 말풍선 + (답변 말풍선 · 시각) 한 줄 + 오류 배지 */
 .entry {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.entry > div:not(.entry-meta) {
+.entry > div {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.5rem;
 }
 
+/* 답변과 시각을 한 줄로 묶고 시각의 아래 끝을 말풍선 아래 끝에 맞춘다 (#169).
+   항목 맨 아래·전체 폭의 오른쪽 끝에 두면 왼쪽의 말풍선과 떨어져 어느 말풍선의 시각인지 애매하다.
+   줄이 전체 폭을 써야 말풍선의 max-width 80% 가 이 폭을 기준으로 계산된다. */
+.answer-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+/* 좁은 화면에선 말풍선이 시각 자리를 남기고 줄어든다 */
+.answer-row .bubble { min-width: 0; }
+
 .entry-meta {
-  order: 2;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0.2rem;
   font-family: var(--mono);
   font-size: var(--fs-meta);
+  line-height: 1.35;
   color: var(--muted);
-  text-align: right;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
 .entry-meta b {
   font-weight: 500;
   color: var(--muted);
-  margin-right: 0.5rem;
 }
 
 .bubble {
@@ -493,18 +509,8 @@ main {
 
   main { padding: 1.5rem 1rem 7rem; }
 
-  .entry {
-    grid-template-columns: 1fr;
-    row-gap: 0.375rem;
-  }
-
-  .entry-meta {
-    text-align: left;
-    display: flex;
-    gap: 0.75rem;
-  }
-
-  .entry-meta b { display: inline; }
+  /* 말풍선이 시각 자리를 남기고 줄어들 수 있게 폭 제한을 푼다 (.answer-row 가 나머지를 맡는다) */
+  .answer-row .bubble { max-width: none; }
 }
 
 /* ── 모션 ───────────────────────────────────────────────── */
