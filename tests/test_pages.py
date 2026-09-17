@@ -5,6 +5,8 @@
 인증 판단은 deps.py 한 곳이 하고, 여기서는 그 결과가 화면에 어떻게 보이는지만 본다.
 """
 
+import html as html_lib
+import json
 import os
 import re
 from datetime import UTC, datetime
@@ -381,6 +383,49 @@ def test_답변_줄은_시각의_아래_끝을_말풍선에_맞춘다(client):
     assert row and "display: flex" in row.group(0) and "align-items: flex-end" in row.group(0)
     meta = re.search(r"\.entry-meta\s*\{[^}]*\}", css)
     assert meta and "order:" not in meta.group(0) and "text-align: right" not in meta.group(0)
+
+
+# ── 저장된 오류 항목도 안내 문구를 보여 준다 (#171) ─────────────
+# 실패 행은 answer="" 로 저장된다. 다시 그릴 때 말풍선이 비면 "무슨 일이 있었는지"가 화면에서 사라진다.
+
+
+@pytest.mark.parametrize("path", ["/chat", "/logs"])
+def test_오류_항목의_말풍선에는_그_코드의_안내_문구가_보인다(logged_in, path):
+    from app.schemas import ERROR_MESSAGES, ErrorCode
+
+    crud.list_chat_logs.return_value = [_chat_log(status="error", answer="", error_code="AI_TIMEOUT")]
+
+    html = logged_in.get(path).text
+
+    bubble = re.search(r'<p class="answer bubble is-bot is-error">(.*?)</p>', html, re.DOTALL)
+    assert bubble and bubble.group(1).strip() == ERROR_MESSAGES[ErrorCode.AI_TIMEOUT]
+
+
+def test_모르는_오류_코드는_내부_오류_문구로_보인다(logged_in):
+    """DB 에 옛 코드가 남아 있어도 화면이 깨지거나 비지 않는다."""
+    from app.schemas import ERROR_MESSAGES, ErrorCode
+
+    crud.list_chat_logs.return_value = [_chat_log(status="error", answer="", error_code="SOMETHING_OLD")]
+
+    html = logged_in.get("/logs").text
+
+    assert ERROR_MESSAGES[ErrorCode.INTERNAL_ERROR] in html
+
+
+def test_더_불러온_오류_항목도_같은_문구를_쓴다(logged_in):
+    """문구의 출처는 schemas 하나다. JS 에 복사해 두지 않고 마크업으로 내려 준다."""
+    from app.schemas import ERROR_MESSAGES, ErrorCode
+
+    html = logged_in.get("/chat").text
+    js = logged_in.get("/static/chat.js").text
+
+    attr = re.search(r"data-error-messages='([^']*)'", html)
+    assert attr
+    # tojson 은 한글을 \\uXXXX 로 내보낸다. 브라우저의 JSON.parse 처럼 풀어서 사전 전체를 비교한다.
+    assert json.loads(html_lib.unescape(attr.group(1))) == {c.value: m for c, m in ERROR_MESSAGES.items()}
+    assert ErrorCode.AI_TIMEOUT.value in attr.group(1)
+    assert 'getAttribute("data-error-messages")' in js
+    assert "item.answer || ERROR_MESSAGES[item.error_code] || FALLBACK" in js
 
 
 def test_한글_조합_중_Enter는_전송하지_않는다(client):

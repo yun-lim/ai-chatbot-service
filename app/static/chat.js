@@ -100,6 +100,9 @@
   // 서버는 최근 HISTORY_LIMIT 건만 그린다. 맨 위 감시 요소가 보이면 다음 묶음을 C 의 조회 API 로 받아
   // 감시 요소 바로 아래에 끼운다. 첫 화면이 한도보다 적었으면 더 없는 것이다.
   var historyTop = document.getElementById("history-top");
+  // 저장된 오류 항목은 answer 가 비어 있다. 서버가 내려 준 문구 사전(schemas.ERROR_MESSAGES)으로 채운다 (#171).
+  var ERROR_MESSAGES = {};
+  try { ERROR_MESSAGES = JSON.parse(log.getAttribute("data-error-messages") || "{}"); } catch (e) {}
   var HISTORY_LIMIT = parseInt(log.getAttribute("data-history-limit"), 10) || 50;
   var historyLoaded = parseInt(log.getAttribute("data-history-loaded"), 10) || 0;
   var historyDone = historyLoaded < HISTORY_LIMIT;
@@ -135,7 +138,7 @@
     answer.className = "answer bubble is-bot";
     if (item.status === "error") {
       answer.classList.add("is-error");
-      answer.textContent = item.answer;
+      answer.textContent = item.answer || ERROR_MESSAGES[item.error_code] || FALLBACK;
     } else {
       answer.innerHTML = renderMarkdown(item.answer);
       answer.classList.add("md");

@@ -5,7 +5,10 @@
     <p class="ask bubble is-user">{{ it.question }}</p>
     {# 시각은 답변 말풍선의 오른쪽 아래에 붙인다 — 항목 끝에 따로 두면 어느 말풍선의 시각인지 애매하다 (#169) #}
     <div class="answer-row">
-      <p class="answer bubble is-bot{% if it.status == 'error' %} is-error{% endif %}">{{ it.answer }}</p>
+      {# 실패 행의 answer 는 빈 문자열이다. 비워 두지 않고 그 코드의 안내 문구를 그린다 (#171) #}
+      <p class="answer bubble is-bot{% if it.status == 'error' %} is-error{% endif %}">
+        {%- if it.status == 'error' and not it.answer %}{{ it.error_code | error_message }}{% else %}{{ it.answer }}{% endif -%}
+      </p>
       <div class="entry-meta">
         <b>{{ it.created_at | kst }}</b>
         {# 응답 시간은 운영 추적값 — 확인용 화면(/logs)에서만 보인다 (#151) #}

@@ -16,6 +16,7 @@ from fastapi.templating import Jinja2Templates
 from app import crud
 from app.config import TEMPLATES_DIR
 from app.deps import CurrentUser, DbSession
+from app.schemas import ERROR_MESSAGES, ErrorCode
 
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
@@ -30,6 +31,22 @@ def _kst(value: datetime) -> str:
 
 
 templates.env.filters["kst"] = _kst
+
+
+# 실패 행은 answer="" 로 저장된다(crud 의 계약). 다시 그릴 때 말풍선이 비지 않게 그 코드의 안내 문구를 쓴다.
+# 문구의 출처는 schemas.ERROR_MESSAGES 하나다 — 화면용 사본을 만들지 않는다 (#171).
+def _error_message(code: str | None) -> str:
+    try:
+        return ERROR_MESSAGES[ErrorCode(code)]
+    except ValueError:
+        # DB 에 지금은 없는 옛 코드가 남아 있어도 화면이 비지 않는다.
+        return ERROR_MESSAGES[ErrorCode.INTERNAL_ERROR]
+
+
+templates.env.filters["error_message"] = _error_message
+
+# chat.js 의 더 불러오기(buildEntry)가 같은 문구를 쓰도록 마크업으로 내려 준다.
+ERROR_MESSAGES_FOR_JS = {code.value: message for code, message in ERROR_MESSAGES.items()}
 
 # 화면 라우트는 OpenAPI 문서에 넣지 않는다. /docs 는 B·C 가 계약을 보는 곳이라
 # HTML 라우트가 섞이면 읽어야 할 것이 묻힌다.
@@ -68,7 +85,12 @@ def chat_page(request: Request, user: CurrentUser, db: DbSession):
     return templates.TemplateResponse(
         request,
         "chat.html",
-        {"user": user, "items": items, "history_limit": CHAT_HISTORY_LIMIT},
+        {
+            "user": user,
+            "items": items,
+            "history_limit": CHAT_HISTORY_LIMIT,
+            "error_messages": ERROR_MESSAGES_FOR_JS,
+        },
     )
 
 
