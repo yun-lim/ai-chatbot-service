@@ -44,7 +44,14 @@ async def attach_request_id(request: Request, call_next):
             logger.info(
                 "request_received method=%s path=%s", request.method, request.url.path
             )
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        except Exception:
+            # 예상 못한 예외는 여기서 잡는다. 아래 전역 핸들러(Exception)는 이 미들웨어보다
+            # 바깥(ServerErrorMiddleware)에서 돌아서, 거기까지 가면 request_id 가 이미 "-" 로
+            # 돌아가 있다 — 가장 추적이 필요한 줄이 추적이 안 된다 (#157).
+            logger.exception("unhandled_exception path=%s", request.url.path)
+            response = _error(ErrorCode.INTERNAL_ERROR)
         response.headers["X-Request-ID"] = request_id
         return response
     finally:
@@ -129,6 +136,8 @@ async def handle_http_exception(request: Request, exc: StarletteHTTPException):
 async def handle_unexpected(request: Request, exc: Exception):
     """예상 못한 예외. 내부 정보를 사용자에게 흘리지 않고 서버 로그에만 남긴다.
 
+    라우터에서 난 예외는 attach_request_id 가 먼저 잡는다 (#157). 여기는 그 미들웨어
+    바깥에서 난 예외까지 받는 최후 방어선이다.
     어떤 경우에도 서버 프로세스는 죽지 않는다.  → 평가항목 14
     """
     logger.exception("unhandled_exception path=%s", request.url.path)
