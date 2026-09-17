@@ -29,6 +29,9 @@
 {% endblock %}
 
 {% block below %}
+  {# markdown.js 는 두 전역(marked · DOMPurify)을 쓴다. defer 는 문서 순서대로 실행된다 — 순서를 바꾸지 않는다 (#172) #}
+  <script src="/static/vendor/marked.umd.js" defer></script>
+  <script src="/static/vendor/purify.min.js" defer></script>
   <script src="/static/markdown.js" defer></script>
   <script>
     // 서버는 답변 원문을 그대로 내보내고, 화면에서 chat.js 와 같은 렌더러로 그린다 (#142).

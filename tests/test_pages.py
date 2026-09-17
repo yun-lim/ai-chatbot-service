@@ -5,6 +5,8 @@
 인증 판단은 deps.py 한 곳이 하고, 여기서는 그 결과가 화면에 어떻게 보이는지만 본다.
 """
 
+import html as html_lib
+import json
 import os
 import re
 from datetime import UTC, datetime
@@ -343,6 +345,89 @@ def test_말풍선은_좌우_정렬과_배경으로_갈린다(client):
     assert bot and "flex-start" in bot.group(0) and "var(--surface)" in bot.group(0)
 
 
+# ── 답변 시각은 말풍선 오른쪽 아래에 (#169) ─────────────────────
+# 메타가 항목 맨 아래·전체 폭의 오른쪽 끝에 있으면 왼쪽의 답변 말풍선과 떨어져 어느 말풍선의
+# 시각인지 애매하다. 답변과 시각을 한 줄로 묶고 아래 끝을 맞춘다.
+
+_ANSWER_ROW = re.compile(
+    r'<div class="answer-row">\s*'
+    r'<p class="answer bubble is-bot[^"]*">.*?</p>\s*'
+    r'<div class="entry-meta">',
+    re.DOTALL,
+)
+
+
+@pytest.mark.parametrize("path", ["/chat", "/logs"])
+def test_시각은_답변_말풍선과_같은_줄에_바로_뒤에_온다(logged_in, path):
+    crud.list_chat_logs.return_value = [_chat_log()]
+
+    html = logged_in.get(path).text
+
+    assert _ANSWER_ROW.search(html)
+
+
+def test_chat_js_가_만드는_항목도_같은_구조다(client):
+    """실시간 항목(addEntry)과 더 불러온 항목(buildEntry) 둘 다 answer-row 에 답변 → 시각 순으로 넣는다."""
+    js = client.get("/static/chat.js").text
+
+    assert js.count('row.className = "answer-row"') == 2
+    assert js.count("row.appendChild(answer);\n    row.appendChild(meta);") == 2
+    # 메타를 항목 맨 앞에 따로 붙이던 옛 구조가 남아 있으면 안 된다.
+    assert "entry.appendChild(meta)" not in js
+
+
+def test_답변_줄은_시각의_아래_끝을_말풍선에_맞춘다(client):
+    css = client.get("/static/style.css").text
+
+    row = re.search(r"\.answer-row\s*\{[^}]*\}", css)
+    assert row and "display: flex" in row.group(0) and "align-items: flex-end" in row.group(0)
+    meta = re.search(r"\.entry-meta\s*\{[^}]*\}", css)
+    assert meta and "order:" not in meta.group(0) and "text-align: right" not in meta.group(0)
+
+
+# ── 저장된 오류 항목도 안내 문구를 보여 준다 (#171) ─────────────
+# 실패 행은 answer="" 로 저장된다. 다시 그릴 때 말풍선이 비면 "무슨 일이 있었는지"가 화면에서 사라진다.
+
+
+@pytest.mark.parametrize("path", ["/chat", "/logs"])
+def test_오류_항목의_말풍선에는_그_코드의_안내_문구가_보인다(logged_in, path):
+    from app.schemas import ERROR_MESSAGES, ErrorCode
+
+    crud.list_chat_logs.return_value = [_chat_log(status="error", answer="", error_code="AI_TIMEOUT")]
+
+    html = logged_in.get(path).text
+
+    bubble = re.search(r'<p class="answer bubble is-bot is-error">(.*?)</p>', html, re.DOTALL)
+    assert bubble and bubble.group(1).strip() == ERROR_MESSAGES[ErrorCode.AI_TIMEOUT]
+
+
+def test_모르는_오류_코드는_내부_오류_문구로_보인다(logged_in):
+    """DB 에 옛 코드가 남아 있어도 화면이 깨지거나 비지 않는다."""
+    from app.schemas import ERROR_MESSAGES, ErrorCode
+
+    crud.list_chat_logs.return_value = [_chat_log(status="error", answer="", error_code="SOMETHING_OLD")]
+
+    html = logged_in.get("/logs").text
+
+    assert ERROR_MESSAGES[ErrorCode.INTERNAL_ERROR] in html
+
+
+def test_더_불러온_오류_항목도_같은_문구를_쓴다(logged_in):
+    """문구의 출처는 schemas 하나다. JS 에 복사해 두지 않고 마크업으로 내려 준다."""
+    from app.schemas import ERROR_MESSAGES, ErrorCode
+
+    html = logged_in.get("/chat").text
+    js = logged_in.get("/static/chat.js").text
+
+    attr = re.search(r"data-error-messages='([^']*)'", html)
+    assert attr
+    # tojson 은 한글을 \\uXXXX 로 내보낸다. 브라우저의 JSON.parse 처럼 풀어서 사전 전체를 비교한다.
+    assert json.loads(html_lib.unescape(attr.group(1))) == {c.value: m for c, m in ERROR_MESSAGES.items()}
+    assert ErrorCode.AI_TIMEOUT.value in attr.group(1)
+    assert 'getAttribute("data-error-messages")' in js
+    assert "item.answer || ERROR_MESSAGES[item.error_code] || FALLBACK" in js
+
+
 def test_한글_조합_중_Enter는_전송하지_않는다(client):
     """IME 가 마지막 글자를 조합하는 중의 Enter(isComposing)는 조합 확정이지 전송이 아니다.
 
@@ -372,6 +457,23 @@ def test_답변은_두_화면이_같은_마크다운_렌더러로_그린다(logg
     assert 'src="/static/markdown.js"' in logs_html
     assert "renderMarkdown(" in js
     assert "renderMarkdown(" in logs_html
+
+
+@pytest.mark.parametrize("path", ["/chat", "/logs"])
+def test_렌더러보다_먼저_marked_와_DOMPurify_를_불러온다(logged_in, path):
+    """markdown.js 는 두 전역(marked · DOMPurify)을 쓴다. defer 는 문서 순서대로 실행되므로 순서가 곧 계약이다.  → #172"""
+    html = logged_in.get(path).text
+
+    order = [html.index(f'src="/static/{name}"') for name in ("vendor/marked.umd.js", "vendor/purify.min.js", "markdown.js")]
+    assert order == sorted(order)
+    # CDN 이 아니라 우리 서버가 준다 — 빌드 단계가 없는 프로젝트라 파일로 넣었다.
+    assert "cdn.jsdelivr" not in html and "unpkg.com" not in html
+
+
+def test_vendor_파일이_서빙된다(client):
+    for name in ("marked.umd.js", "purify.min.js"):
+        response = client.get(f"/static/vendor/{name}")
+        assert response.status_code == 200 and len(response.content) > 10_000
 
 
 def test_오류_답변은_마크다운으로_그리지_않는다(client):

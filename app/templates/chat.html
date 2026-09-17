@@ -10,7 +10,8 @@
   <p class="notice" id="notice" role="alert"></p>
 
   <div class="log" id="log"
-       data-history-limit="{{ history_limit }}" data-history-loaded="{{ items | length }}">
+       data-history-limit="{{ history_limit }}" data-history-loaded="{{ items | length }}"
+       data-error-messages='{{ error_messages | tojson }}'>
     {# 맨 위 감시 요소 — 여기가 보이면 chat.js 가 더 오래된 대화를 불러와 바로 아래에 끼운다 (#148) #}
     <div class="history-top" id="history-top" aria-live="polite"></div>
     {% if items %}
@@ -34,6 +35,9 @@
       <p class="counter" id="counter"></p>
     </div>
   </form>
+  {# markdown.js 는 두 전역(marked · DOMPurify)을 쓴다. defer 는 문서 순서대로 실행된다 — 순서를 바꾸지 않는다 (#172) #}
+  <script src="/static/vendor/marked.umd.js" defer></script>
+  <script src="/static/vendor/purify.min.js" defer></script>
   <script src="/static/markdown.js" defer></script>
   <script src="/static/chat.js" defer></script>
 {% endblock %}

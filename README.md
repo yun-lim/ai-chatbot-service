@@ -77,6 +77,7 @@
 |---|---|---|
 | 언어 · 프레임워크 | Python 3.12 · FastAPI | 과제 지정 |
 | 화면 | Jinja2 서버 템플릿 + 채팅 송수신만 `fetch` | 새로고침 없이 대화 유지 |
+| 답변 렌더링 | `marked` + `DOMPurify` (`app/static/vendor/`, 빌드 단계 없이 파일로) | AI 답변의 마크다운을 그리되 정제를 거친 HTML 만 화면에 넣는다 |
 | DB | Neon PostgreSQL · SQLAlchemy 2.x · psycopg 3 | pooled 연결, development·production 분리 |
 | 인증 | JWT + HttpOnly 쿠키 (라이브러리 사용) | |
 | AI | 코디세이 OpenAI 호환 API(`copa.codyssey.kr/v1`) · `gpt-5.4-mini` · `openai` SDK | 타임아웃 10초, 타임아웃·API 오류는 1회 재시도. 모델명·문맥 5턴은 `config.py` 상수 |
