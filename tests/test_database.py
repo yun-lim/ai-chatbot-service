@@ -30,6 +30,20 @@ def test_Base와_SessionLocal이_동기_Session_계약을_제공한다(monkeypat
         assert session.expire_on_commit is False
 
 
+def test_운영_엔진은_SQL_예외에_파라미터를_싣지_않는다(monkeypatch):
+    """SQLAlchemy 예외 문자열은 기본값에서 [parameters: …] 로 질문·답변 원문을 담는다.
+
+    crud 는 예외 타입만 기록하지만, 다시 올린 예외를 위 계층이 logger.exception 으로
+    트레이스백째 찍는다. 엔진 한 곳에서 막아야 빠뜨릴 자리가 없다.  → #155, 평가항목 30
+    """
+    monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
+    sys.modules.pop("app.database", None)
+
+    database = importlib.import_module("app.database")
+
+    assert database.engine.hide_parameters is True
+
+
 def test_DATABASE_URL이_없으면_명확한_설정_오류가_발생한다():
     environment = os.environ.copy()
     environment.pop("DATABASE_URL", None)
