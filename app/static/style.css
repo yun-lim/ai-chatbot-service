@@ -326,6 +326,39 @@ main {
 }
 .answer.md pre code { background: none; padding: 0; font-size: inherit; }
 
+/* marked 로 바꾸며 그릴 수 있게 된 것들 (#172) */
+.answer.md a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  overflow-wrap: anywhere;
+}
+.answer.md em { font-style: italic; }
+.answer.md hr { border: 0; border-top: 1px solid var(--rule); margin: 1em 0; }
+.answer.md blockquote {
+  margin: 0.5em 0 0.7em;
+  padding-left: 0.9em;
+  border-left: 3px solid var(--rule);
+  color: var(--muted);
+}
+/* 표는 말풍선보다 넓어질 수 있다 — 말풍선이 아니라 표가 가로로 스크롤된다 */
+.answer.md table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 0.5em 0 0.8em;
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+.answer.md th,
+.answer.md td { padding: 0.35em 0.7em; border: 1px solid var(--rule); }
+/* 마크다운의 정렬(|:---:|)은 align 속성으로 온다. 작성자 CSS 가 그걸 덮지 않게, 정렬이 없을 때만 왼쪽으로 */
+.answer.md th:not([align]),
+.answer.md td:not([align]) { text-align: left; }
+.answer.md th { font-weight: 600; background: var(--accent-soft); }
+.answer.md li > ul,
+.answer.md li > ol { margin-top: 0.15em; margin-bottom: 0.15em; }
+
 /* ── 상태 배지 ──────────────────────────────────────────── */
 
 .badge {

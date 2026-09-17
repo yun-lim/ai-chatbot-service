@@ -459,6 +459,23 @@ def test_답변은_두_화면이_같은_마크다운_렌더러로_그린다(logg
     assert "renderMarkdown(" in logs_html
 
 
+@pytest.mark.parametrize("path", ["/chat", "/logs"])
+def test_렌더러보다_먼저_marked_와_DOMPurify_를_불러온다(logged_in, path):
+    """markdown.js 는 두 전역(marked · DOMPurify)을 쓴다. defer 는 문서 순서대로 실행되므로 순서가 곧 계약이다.  → #172"""
+    html = logged_in.get(path).text
+
+    order = [html.index(f'src="/static/{name}"') for name in ("vendor/marked.umd.js", "vendor/purify.min.js", "markdown.js")]
+    assert order == sorted(order)
+    # CDN 이 아니라 우리 서버가 준다 — 빌드 단계가 없는 프로젝트라 파일로 넣었다.
+    assert "cdn.jsdelivr" not in html and "unpkg.com" not in html
+
+
+def test_vendor_파일이_서빙된다(client):
+    for name in ("marked.umd.js", "purify.min.js"):
+        response = client.get(f"/static/vendor/{name}")
+        assert response.status_code == 200 and len(response.content) > 10_000
+
+
 def test_오류_답변은_마크다운으로_그리지_않는다(client):
     """오류 문구는 서버가 정한 평문이다. settle 이 isError 일 때는 textContent 로 둔다."""
     js = client.get("/static/chat.js").text
