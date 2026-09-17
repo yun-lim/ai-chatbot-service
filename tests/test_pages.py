@@ -244,6 +244,36 @@ def test_기록이_없으면_없다고_말한다(logged_in):
     assert "아직 연결되지 않았습니다" not in response.text
 
 
+def test_기록이_한도를_넘으면_더_있다고_알린다(logged_in):
+    """조용히 잘라내면 21번째부터는 "없는 것"처럼 보인다 — "아직 안 보임"은 "없음"과 다르게 낸다.  → #162"""
+    from app.routers.pages import LOGS_PAGE_LIMIT
+
+    # 화면은 한 건 더 읽어 "더 있는지"를 알아낸다. crud 는 최신순으로 준다.
+    crud.list_chat_logs.return_value = [
+        _chat_log(id=i, question=f"질문 {i}") for i in range(LOGS_PAGE_LIMIT + 1, 0, -1)
+    ]
+
+    html = logged_in.get("/logs").text
+
+    assert crud.list_chat_logs.call_args.kwargs["limit"] == LOGS_PAGE_LIMIT + 1
+    assert html.count('class="entry"') == LOGS_PAGE_LIMIT
+    assert "질문 1<" not in html                      # 가장 오래된 한 건은 그리지 않는다
+    more = html[html.index('id="logs-more"'):][:400]  # 안내가 없으면 여기서 ValueError
+    assert f"{LOGS_PAGE_LIMIT}건" in more
+    assert 'href="/chat"' in more                     # 전체를 보는 길
+
+
+def test_기록이_한도_이하면_안내가_없다(logged_in):
+    from app.routers.pages import LOGS_PAGE_LIMIT
+
+    crud.list_chat_logs.return_value = [_chat_log(id=i) for i in range(LOGS_PAGE_LIMIT, 0, -1)]
+
+    html = logged_in.get("/logs").text
+
+    assert html.count('class="entry"') == LOGS_PAGE_LIMIT
+    assert 'id="logs-more"' not in html
+
+
 def test_로그_화면은_본인_기록을_crud_한_곳에서_읽는다(logged_in, user):
     """쿼리는 crud.list_chat_logs 가 한다. 화면은 user.id 를 넘기고 결과를 그릴 뿐이다."""
     crud.list_chat_logs.return_value = [
