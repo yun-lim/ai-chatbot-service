@@ -38,6 +38,9 @@ router = APIRouter(tags=["pages"], include_in_schema=False)
 # /chat 에 미리 그리는 지난 대화 수. 서버 문맥(최근 5턴)보다 넉넉히 보여 주되 화면을 끝없이 키우진 않는다.
 CHAT_HISTORY_LIMIT = 50
 
+# /logs 에 그리는 최근 기록 수. 그보다 많으면 많다고 화면에 알린다 — 조용히 잘라내지 않는다 (#162).
+LOGS_PAGE_LIMIT = 20
+
 
 @router.get("/")
 def index() -> RedirectResponse:
@@ -72,9 +75,16 @@ def chat_page(request: Request, user: CurrentUser, db: DbSession):
 @router.get("/logs")
 def logs_page(request: Request, user: CurrentUser, db: DbSession):
     """지난 대화 화면. 본인 기록만, 최신순."""
-    items = crud.list_chat_logs(db, user.id)
+    # 한 건 더 읽어 "더 있는지"를 알아낸다. 새 쿼리를 만들지 않고 crud 의 limit 만 쓴다.
+    rows = crud.list_chat_logs(db, user.id, limit=LOGS_PAGE_LIMIT + 1)
     return templates.TemplateResponse(
         request,
         "logs.html",
-        {"user": user, "items": items, "show_latency": True},
+        {
+            "user": user,
+            "items": rows[:LOGS_PAGE_LIMIT],
+            "show_latency": True,
+            "has_more": len(rows) > LOGS_PAGE_LIMIT,
+            "logs_limit": LOGS_PAGE_LIMIT,
+        },
     )

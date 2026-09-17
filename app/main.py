@@ -44,7 +44,14 @@ async def attach_request_id(request: Request, call_next):
             logger.info(
                 "request_received method=%s path=%s", request.method, request.url.path
             )
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        except Exception:
+            # 예상 못한 예외는 여기서 잡는다. 아래 전역 핸들러(Exception)는 이 미들웨어보다
+            # 바깥(ServerErrorMiddleware)에서 돌아서, 거기까지 가면 request_id 가 이미 "-" 로
+            # 돌아가 있다 — 가장 추적이 필요한 줄이 추적이 안 된다 (#157).
+            logger.exception("unhandled_exception path=%s", request.url.path)
+            response = _error(ErrorCode.INTERNAL_ERROR)
         response.headers["X-Request-ID"] = request_id
         return response
     finally:
@@ -89,13 +96,29 @@ def _error(code: ErrorCode, message: str | None = None, status: int | None = Non
 # 새 코드는 AppError 를 쓰는 편이 낫다 — 상태코드를 직접 고르지 않아도 된다.
 _STATUS_TO_CODE = {
     401: ErrorCode.NOT_AUTHENTICATED,
+    404: ErrorCode.NOT_FOUND,
+    405: ErrorCode.METHOD_NOT_ALLOWED,
     409: ErrorCode.DUPLICATE_USERNAME,
     422: ErrorCode.VALIDATION_ERROR,
 }
 
+# 사람이 주소창에서 마주치는 오류. 화면 요청이면 JSON 이 아니라 안내 화면으로 낸다 (#159).
+_PAGE_ERRORS = {ErrorCode.NOT_FOUND, ErrorCode.METHOD_NOT_ALLOWED}
+
 
 def _login_redirect() -> RedirectResponse:
     return RedirectResponse("/login", status_code=302)
+
+
+def _error_page(request: Request, code: ErrorCode):
+    """화면용 오류 안내. 문구는 API 와 같은 출처(ERROR_MESSAGES)를 쓴다."""
+    status = ERROR_STATUS[code]
+    return pages.templates.TemplateResponse(
+        request,
+        "error.html",
+        {"status": status, "message": ERROR_MESSAGES[code]},
+        status_code=status,
+    )
 
 
 @app.exception_handler(RequestValidationError)
@@ -119,9 +142,13 @@ async def handle_http_exception(request: Request, exc: StarletteHTTPException):
     if exc.status_code == 401 and _wants_html(request):
         return _login_redirect()
     if code is not None:
+        # 없는 정적 파일은 <script>·<link> 가 받는 자리라 화면이 아니라 JSON 으로 둔다.
+        is_static = request.url.path.startswith("/static/")
+        if code in _PAGE_ERRORS and _wants_html(request) and not is_static:
+            return _error_page(request, code)
         return _error(code)
 
-    # 404 처럼 매핑이 없는 상태는 상태코드를 유지하고 형식만 맞춘다.
+    # 매핑이 없는 드문 상태는 상태코드를 유지하고 형식만 맞춘다.
     return _error(ErrorCode.INTERNAL_ERROR, str(exc.detail), status=exc.status_code)
 
 
@@ -129,6 +156,8 @@ async def handle_http_exception(request: Request, exc: StarletteHTTPException):
 async def handle_unexpected(request: Request, exc: Exception):
     """예상 못한 예외. 내부 정보를 사용자에게 흘리지 않고 서버 로그에만 남긴다.
 
+    라우터에서 난 예외는 attach_request_id 가 먼저 잡는다 (#157). 여기는 그 미들웨어
+    바깥에서 난 예외까지 받는 최후 방어선이다.
     어떤 경우에도 서버 프로세스는 죽지 않는다.  → 평가항목 14
     """
     logger.exception("unhandled_exception path=%s", request.url.path)

@@ -154,6 +154,28 @@ def test_맨_위에_닿으면_다음_묶음을_API_로_불러온다(client):
     assert '"ask bubble is-user"' in js and '"answer bubble is-bot"' in js
 
 
+def test_더_불러오기_offset_은_이번_접속에서_저장된_질문_수를_더한다(client):
+    """조회 API 는 최신순이라 새 행이 쌓이면 이미 그린 항목이 그만큼 뒤로 밀린다.
+
+    offset 에 그 수를 더하지 않으면 새로 보낸 질문 수만큼 중복으로 끼워진다.  → #161
+    """
+    js = client.get("/static/chat.js").text
+
+    assert "&offset=\" + (historyLoaded + savedThisSession)" in js
+
+
+def test_저장되는_응답에서만_센다(client):
+    """서버가 chat_logs 에 남기는 것은 성공(200)과 AI 실패(503)다. 422·401·네트워크 오류는 저장되지 않는다."""
+    js = client.get("/static/chat.js").text
+    submit = js[js.index("var slot = addEntry(question)"):]
+
+    assert "if (r.ok || r.status === 503) savedThisSession += 1;" in submit
+    # 네트워크 오류에서는 세지 않는다 — 서버에 닿지 못했다.
+    # (첫 .catch 는 res.json() 의 것이라, 네트워크 오류 처리는 그 주석으로 찾는다.)
+    network_failure = submit[submit.index("// 네트워크 자체가 끊긴 경우"):submit.index(".finally(")]
+    assert "savedThisSession" not in network_failure
+
+
 def test_채팅_화면의_지난_대화에는_시각만_있고_응답_시간은_없다(logged_in):
     """ms 는 운영 추적값이다. 학습자가 채팅하며 볼 값이 아니라 /logs 에만 둔다.  → #151"""
     crud.list_chat_logs.return_value = [_chat_log(latency_ms=321)]
@@ -220,6 +242,36 @@ def test_기록이_없으면_없다고_말한다(logged_in):
 
     assert "아직 기록이 없습니다" in response.text
     assert "아직 연결되지 않았습니다" not in response.text
+
+
+def test_기록이_한도를_넘으면_더_있다고_알린다(logged_in):
+    """조용히 잘라내면 21번째부터는 "없는 것"처럼 보인다 — "아직 안 보임"은 "없음"과 다르게 낸다.  → #162"""
+    from app.routers.pages import LOGS_PAGE_LIMIT
+
+    # 화면은 한 건 더 읽어 "더 있는지"를 알아낸다. crud 는 최신순으로 준다.
+    crud.list_chat_logs.return_value = [
+        _chat_log(id=i, question=f"질문 {i}") for i in range(LOGS_PAGE_LIMIT + 1, 0, -1)
+    ]
+
+    html = logged_in.get("/logs").text
+
+    assert crud.list_chat_logs.call_args.kwargs["limit"] == LOGS_PAGE_LIMIT + 1
+    assert html.count('class="entry"') == LOGS_PAGE_LIMIT
+    assert "질문 1<" not in html                      # 가장 오래된 한 건은 그리지 않는다
+    more = html[html.index('id="logs-more"'):][:400]  # 안내가 없으면 여기서 ValueError
+    assert f"{LOGS_PAGE_LIMIT}건" in more
+    assert 'href="/chat"' in more                     # 전체를 보는 길
+
+
+def test_기록이_한도_이하면_안내가_없다(logged_in):
+    from app.routers.pages import LOGS_PAGE_LIMIT
+
+    crud.list_chat_logs.return_value = [_chat_log(id=i) for i in range(LOGS_PAGE_LIMIT, 0, -1)]
+
+    html = logged_in.get("/logs").text
+
+    assert html.count('class="entry"') == LOGS_PAGE_LIMIT
+    assert 'id="logs-more"' not in html
 
 
 def test_로그_화면은_본인_기록을_crud_한_곳에서_읽는다(logged_in, user):
