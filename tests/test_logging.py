@@ -24,7 +24,15 @@ def _t_logs_twice():
     return {"request_id": get_request_id()}
 
 
+@app.get("/api/_t/logs-boom")
+def _t_logs_boom():
+    """예상 못 한 예외. 이 줄이 가장 추적이 필요하다 (#157)."""
+    raise RuntimeError("일부러 낸 예외")
+
+
 client = TestClient(app)
+# 500 을 응답으로 받아 보려면 서버 예외를 테스트로 다시 던지지 않게 해야 한다.
+boom_client = TestClient(app, raise_server_exceptions=False)
 
 
 class _Capture(logging.Handler):
@@ -73,6 +81,25 @@ def test_정적파일은_로그를_남기지_않는다():
         client.get("/static/style.css")
         received = [r for r in handler.records if "request_received" in r.getMessage()]
         assert received == []
+    finally:
+        logging.getLogger().removeHandler(handler)
+
+
+def test_예상못한_예외의_응답에도_request_id_가_실린다():
+    res = boom_client.get("/api/_t/logs-boom")
+    assert res.status_code == 500
+    assert res.json()["error_code"] == "INTERNAL_ERROR"
+    assert len(res.headers.get("X-Request-ID", "")) == 8
+
+
+def test_예상못한_예외의_로그가_그_요청의_id_를_갖는다():
+    handler = _capture()
+    try:
+        res = boom_client.get("/api/_t/logs-boom")
+        unhandled = [r for r in handler.records if "unhandled_exception" in r.getMessage()]
+        assert len(unhandled) == 1
+        assert unhandled[0].request_id != "-"
+        assert unhandled[0].request_id == res.headers.get("X-Request-ID")
     finally:
         logging.getLogger().removeHandler(handler)
 
