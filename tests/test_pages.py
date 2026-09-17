@@ -154,6 +154,28 @@ def test_맨_위에_닿으면_다음_묶음을_API_로_불러온다(client):
     assert '"ask bubble is-user"' in js and '"answer bubble is-bot"' in js
 
 
+def test_더_불러오기_offset_은_이번_접속에서_저장된_질문_수를_더한다(client):
+    """조회 API 는 최신순이라 새 행이 쌓이면 이미 그린 항목이 그만큼 뒤로 밀린다.
+
+    offset 에 그 수를 더하지 않으면 새로 보낸 질문 수만큼 중복으로 끼워진다.  → #161
+    """
+    js = client.get("/static/chat.js").text
+
+    assert "&offset=\" + (historyLoaded + savedThisSession)" in js
+
+
+def test_저장되는_응답에서만_센다(client):
+    """서버가 chat_logs 에 남기는 것은 성공(200)과 AI 실패(503)다. 422·401·네트워크 오류는 저장되지 않는다."""
+    js = client.get("/static/chat.js").text
+    submit = js[js.index("var slot = addEntry(question)"):]
+
+    assert "if (r.ok || r.status === 503) savedThisSession += 1;" in submit
+    # 네트워크 오류에서는 세지 않는다 — 서버에 닿지 못했다.
+    # (첫 .catch 는 res.json() 의 것이라, 네트워크 오류 처리는 그 주석으로 찾는다.)
+    network_failure = submit[submit.index("// 네트워크 자체가 끊긴 경우"):submit.index(".finally(")]
+    assert "savedThisSession" not in network_failure
+
+
 def test_채팅_화면의_지난_대화에는_시각만_있고_응답_시간은_없다(logged_in):
     """ms 는 운영 추적값이다. 학습자가 채팅하며 볼 값이 아니라 /logs 에만 둔다.  → #151"""
     crud.list_chat_logs.return_value = [_chat_log(latency_ms=321)]

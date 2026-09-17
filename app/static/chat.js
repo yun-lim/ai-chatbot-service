@@ -100,6 +100,9 @@
   var historyLoaded = parseInt(log.getAttribute("data-history-loaded"), 10) || 0;
   var historyDone = historyLoaded < HISTORY_LIMIT;
   var historyBusy = false;
+  // 이번 접속에서 서버에 저장된 질문 수. 조회 API 는 최신순이라 새 행이 쌓이면 이미 그린 항목이
+  // 그만큼 뒤로 밀린다 — offset 에 더하지 않으면 그 수만큼 중복으로 끼워진다 (#161).
+  var savedThisSession = 0;
 
   // API 의 created_at 은 UTC. 서버 렌더링(kst 필터)과 같은 "MM/DD HH:MM" 로 맞춘다.
   function fmtKst(iso) {
@@ -152,7 +155,7 @@
     historyBusy = true;
     historyTop.textContent = "지난 대화를 불러오는 중…";
 
-    fetch("/api/me/chats?limit=" + HISTORY_LIMIT + "&offset=" + historyLoaded)
+    fetch("/api/me/chats?limit=" + HISTORY_LIMIT + "&offset=" + (historyLoaded + savedThisSession))
       .then(function (res) {
         if (!res.ok) throw new Error("status " + res.status);
         return res.json();
@@ -224,6 +227,8 @@
           .then(function (data) { return { ok: res.ok, status: res.status, data: data }; });
       })
       .then(function (r) {
+        // 서버는 성공(200)과 AI 실패(503)를 chat_logs 에 남긴다. 422·401 은 남기지 않는다.
+        if (r.ok || r.status === 503) savedThisSession += 1;
         if (r.ok) {
           settle(slot, r.data.answer, false);
           return;
