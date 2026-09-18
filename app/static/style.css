@@ -75,7 +75,11 @@
 *::before,
 *::after { box-sizing: border-box; }
 
-html { -webkit-text-size-adjust: 100%; }
+html {
+  -webkit-text-size-adjust: 100%;
+  /* 자동 스크롤(scrollIntoView)이 항목의 아래 끝을 고정 입력창 *위*에 맞추게 한다 (#176) */
+  scroll-padding-bottom: calc(var(--composer-h) + 1rem);
+}
 
 body {
   margin: 0;
@@ -173,10 +177,15 @@ pre code {
 
 /* ── 페이지 ─────────────────────────────────────────────── */
 
+/* 고정 입력창의 실제 높이. chat.js 가 ResizeObserver 로 갱신한다 — 입력칸이 자라면 같이 커진다.
+   JS 가 돌기 전(그리고 /logs 처럼 입력창이 없는 화면)엔 이 기본값을 쓴다 (#176). */
+:root { --composer-h: 7rem; }
+
 main {
   max-width: 46rem;
   margin: 0 auto;
-  padding: 2rem 1.25rem 6rem;
+  /* 아래 여백이 입력창보다 작으면 끝까지 스크롤해도 마지막 답변이 그 차이만큼 가려진다 */
+  padding: 2rem 1.25rem calc(var(--composer-h) + 1.5rem);
 }
 
 .page-title {
@@ -540,7 +549,7 @@ main {
 @media (max-width: 34rem) {
   :root { --gutter: 3.75rem; }
 
-  main { padding: 1.5rem 1rem 7rem; }
+  main { padding: 1.5rem 1rem calc(var(--composer-h) + 1.25rem); }
 
   /* 말풍선이 시각 자리를 남기고 줄어들 수 있게 폭 제한을 푼다 (.answer-row 가 나머지를 맡는다) */
   .answer-row .bubble { max-width: none; }
