@@ -428,6 +428,31 @@ def test_더_불러온_오류_항목도_같은_문구를_쓴다(logged_in):
     assert "item.answer || ERROR_MESSAGES[item.error_code] || FALLBACK" in js
 
 
+# ── 마지막 답변이 고정 입력창에 가려지지 않는다 (#176) ──────────
+# 입력창은 position: fixed 고 높이가 변한다(입력칸이 자란다). 본문 여백과 자동 스크롤의 기준점이
+# 고정값이면 그 차이만큼 마지막 답변이 가려진다.
+
+
+def test_본문_여백과_스크롤_기준점은_입력창_높이를_따른다(client):
+    css = client.get("/static/style.css").text
+
+    main = re.search(r"\nmain\s*\{[^}]*\}", css)
+    assert main and "var(--composer-h" in main.group(0)
+    html_rule = re.search(r"\nhtml\s*\{[^}]*\}", css)
+    assert html_rule and re.search(r"scroll-padding-bottom:\s*calc\(var\(--composer-h", html_rule.group(0))
+
+
+def test_chat_js_가_입력창_높이를_재서_변수로_둔다(client):
+    """입력칸이 자랄 때·창 크기가 바뀔 때마다 갱신돼야 한다 — 한 번 재고 끝나면 안 된다."""
+    js = client.get("/static/chat.js").text
+
+    assert 'setProperty("--composer-h"' in js
+    assert "new ResizeObserver(" in js and ".observe(form)" in js
+    # 입력칸이 자라는 순간 스크롤 위치는 그대로라 보고 있던 답변이 덮인다 — 맨 아래였다면 맨 아래를 유지한다.
+    sync = js[js.index("function syncComposerHeight(") : js.index("syncComposerHeight();")]
+    assert "wasAtBottom" in sync and "window.scrollTo(0, doc.scrollHeight)" in sync
+
+
 def test_한글_조합_중_Enter는_전송하지_않는다(client):
     """IME 가 마지막 글자를 조합하는 중의 Enter(isComposing)는 조합 확정이지 전송이 아니다.
 

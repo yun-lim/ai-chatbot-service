@@ -18,6 +18,19 @@
   // 정상 경로에서는 서버가 보낸 message 를 그대로 보여준다.
   var FALLBACK = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.";
 
+  // 입력창은 고정(position: fixed)이고 높이가 변한다 — 입력칸이 자란다. 실제 높이를 CSS 변수로 넘겨
+  // 본문의 아래 여백과 자동 스크롤의 기준점(scroll-padding-bottom)이 따르게 한다 (#176).
+  function syncComposerHeight() {
+    // 입력창이 커지는 순간 여백은 늘지만 스크롤 위치는 그대로라, 보고 있던 마지막 답변이 덮인다.
+    // 맨 아래를 보고 있었다면(여유 24px) 커진 뒤에도 맨 아래를 유지한다.
+    var doc = document.documentElement;
+    var wasAtBottom = window.innerHeight + window.scrollY >= doc.scrollHeight - 24;
+    doc.style.setProperty("--composer-h", form.getBoundingClientRect().height + "px");
+    if (wasAtBottom) window.scrollTo(0, doc.scrollHeight);
+  }
+  syncComposerHeight();
+  if ("ResizeObserver" in window) new ResizeObserver(syncComposerHeight).observe(form);
+
   function fmtTime(d) {
     return String(d.getHours()).padStart(2, "0") + ":" +
            String(d.getMinutes()).padStart(2, "0");
