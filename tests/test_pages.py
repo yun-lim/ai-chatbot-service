@@ -453,6 +453,15 @@ def test_chat_js_가_입력창_높이를_재서_변수로_둔다(client):
     assert "wasAtBottom" in sync and "window.scrollTo(0, doc.scrollHeight)" in sync
 
 
+def test_실시간_답변의_시각도_지난_대화와_같은_형식이다(client):
+    """세 경로(미리 그리기 · 더 불러오기 · 실시간)가 같은 MM/DD HH:MM(KST)이어야 한 화면에 형식이 둘이 되지 않는다.  → #179"""
+    js = client.get("/static/chat.js").text
+    add_entry = js[js.index("function addEntry(") : js.index("function settle(")]
+
+    assert "fmtKst(new Date().toISOString())" in add_entry
+    assert "fmtTime(" not in js and "getHours()" not in js   # 브라우저 로컬 시각·HH:MM 만 찍던 함수는 지운다
+
+
 def test_한글_조합_중_Enter는_전송하지_않는다(client):
     """IME 가 마지막 글자를 조합하는 중의 Enter(isComposing)는 조합 확정이지 전송이 아니다.
 
