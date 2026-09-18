@@ -31,9 +31,13 @@
   syncComposerHeight();
   if ("ResizeObserver" in window) new ResizeObserver(syncComposerHeight).observe(form);
 
-  function fmtTime(d) {
-    return String(d.getHours()).padStart(2, "0") + ":" +
-           String(d.getMinutes()).padStart(2, "0");
+  // 시각은 세 경로(서버가 미리 그린 항목 · 더 불러온 항목 · 방금 보낸 항목)가 같은 "MM/DD HH:MM"(KST)이어야 한다.
+  // 서버 렌더링의 kst 필터와 같은 규칙이다. 브라우저 로컬 시각을 쓰면 형식도 기준 시간대도 달라진다 (#179).
+  function fmtKst(iso) {
+    var d = new Date(new Date(iso).getTime() + 9 * 60 * 60 * 1000);
+    var p = function (n) { return String(n).padStart(2, "0"); };
+    return p(d.getUTCMonth() + 1) + "/" + p(d.getUTCDate()) + " " +
+           p(d.getUTCHours()) + ":" + p(d.getUTCMinutes());
   }
 
   // 길이 상한은 없다. 코드를 붙여넣을 때 크기를 가늠하라고 글자 수만 보여준다.
@@ -56,7 +60,7 @@
     var meta = document.createElement("div");
     meta.className = "entry-meta";
     var time = document.createElement("b");
-    time.textContent = fmtTime(new Date());
+    time.textContent = fmtKst(new Date().toISOString());
     meta.appendChild(time);
 
     var body = document.createElement("div");
@@ -123,14 +127,6 @@
   // 이번 접속에서 서버에 저장된 질문 수. 조회 API 는 최신순이라 새 행이 쌓이면 이미 그린 항목이
   // 그만큼 뒤로 밀린다 — offset 에 더하지 않으면 그 수만큼 중복으로 끼워진다 (#161).
   var savedThisSession = 0;
-
-  // API 의 created_at 은 UTC. 서버 렌더링(kst 필터)과 같은 "MM/DD HH:MM" 로 맞춘다.
-  function fmtKst(iso) {
-    var d = new Date(new Date(iso).getTime() + 9 * 60 * 60 * 1000);
-    var p = function (n) { return String(n).padStart(2, "0"); };
-    return p(d.getUTCMonth() + 1) + "/" + p(d.getUTCDate()) + " " +
-           p(d.getUTCHours()) + ":" + p(d.getUTCMinutes());
-  }
 
   // templates/_entry.html 과 같은 마크업. 서버가 그린 항목과 같은 CSS 를 탄다.
   function buildEntry(item) {
